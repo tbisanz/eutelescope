@@ -45,7 +45,9 @@
 
 
 namespace eutelescope {
-  class PreAligner{
+  
+class PreAligner
+{
   private:
     float pitchX, pitchY;
     std::vector<int> histoX, histoY;
@@ -53,42 +55,50 @@ namespace eutelescope {
     float range;
     float zPos;
     int iden;
-    float getMaxBin(std::vector<int>& histo){
+
+    float getMaxBin(std::vector<int>& histo)
+    {
       int maxBin(0), maxVal(0);
-      for(size_t ii = 0; ii < histo.size(); ii++){
-	if(histo.at(ii) > maxVal){ 
+      for(size_t ii = 0; ii < histo.size(); ii++)
+      {
+	if(histo.at(ii) > maxVal)
+	{ 
 	  maxBin = ii; 
 	  maxVal = histo.at(ii);
 	}
       }
+
       //Get weighted position from 3 neighboring bins
       // as long as we are not on the edges of our histogram:
-      if(maxBin== 0 || maxBin== static_cast< int >(histo.size())){ 
+      if(maxBin== 0 || maxBin== static_cast< int >(histo.size()))
+      { 
 	streamlog_out( WARNING3 ) << "At least one sensor frame might be empty or heavily misaligned. Please check the GEAR file!" << std::endl; 
 	return static_cast< float >(maxBin);
       }
+
       float weight(0.0);
       double pos1(0.0);
       double pos2(0.0);
       double pos3(0.0);
 
       try
-	{
+      {
 	  // use logarithms to be on the safe side even with large number of
 	  // bin entries
 	  pos1 = log(maxBin-1)+log(histo.at(maxBin-1));
 	  pos2 = log(maxBin)+log(histo.at(maxBin));
 	  pos3 = log(maxBin+1)+ log(histo.at(maxBin+1));
 	  weight = log((histo.at(maxBin-1)) + (histo.at(maxBin)) + (histo.at(maxBin+1)));
-	}
+      }
       catch(...)
-	{
+      {
 	  streamlog_out( ERROR ) << "Could not execute prealignment bin content retrieval. The sensor frame might be empty or heavily misaligned. Please check the GEAR file!" << std::endl; 
-	}
+      }
       return(exp(pos1-weight)+exp(pos2-weight)+exp(pos3-weight));
     }
+
   public:
-    PreAligner(float pitchX, float pitchY, float zPos, int iden): 
+      PreAligner(float pitchX, float pitchY, float zPos, int iden): 
       pitchX(pitchX), pitchY(pitchY), 
       minX(-40.0), maxX(40), range(maxX - minX),
       zPos(zPos), iden(iden){
@@ -116,8 +126,6 @@ namespace eutelescope {
 
 
   }; // class PreAligner
-  
-
 
 
   class EUTelPreAlign:public marlin::Processor {
@@ -132,28 +140,8 @@ namespace eutelescope {
     virtual void processRunHeader (LCRunHeader * run);
     virtual void processEvent (LCEvent * evt);
     virtual void end();
-    virtual bool hitContainsHotPixels( TrackerHitImpl   * hit) ;
-
-    //! Called for first event per run
-    /*! Reads hotpixel information from hotPixelCollection into hotPixelMap
-     * to be used in the sensor exclusion area logic 
-     */
-    virtual void  FillHotPixelMap(LCEvent *event);
 
   private:
-    //! Hot pixel collection name.
-    /*! 
-     * this collection is saved in a db file to be used at the clustering level
-     */
-    std::string _hotPixelCollectionName;
- 
-    //! reference HitCollection name 
-    /*!
-     */
-    std::string      _referenceHitCollectionName;
-    bool             _useReferenceHitCollection;
-    LCCollectionVec* _referenceHitVec;    
-    
     //! map of vectors, keeps record of hit pixels 
     /*! 
      *  For each Detector a vector is stored in a map.
@@ -169,10 +157,6 @@ namespace eutelescope {
      */
     int _events;
    
-    //! bool tag if PreAlign should run anyway or not;
-    /*! default 0
-     */   
-    bool _UsefullHotPixelCollectionFound;
 
 // maps and vectors to navigate along the geometry of the setup:
     //! vector of Rotation Matrix elements
@@ -220,12 +204,9 @@ namespace eutelescope {
     std::map<unsigned int, AIDA::IBaseHistogram * > _hitYCorr;
 #endif
 
-
-
   protected:
     std::string _inputHitCollectionName;
     std::string _alignmentConstantLCIOFile;
- 
  
     int _iRun;
     int _iEvt;

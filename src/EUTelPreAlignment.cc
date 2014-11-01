@@ -5,11 +5,6 @@
 #include "EUTelRunHeaderImpl.h"
 #include "EUTelEventImpl.h"
 #include "EUTelAlignmentConstant.h"
-#include "EUTelVirtualCluster.h"
-#include "EUTelFFClusterImpl.h"
-#include "EUTelDFFClusterImpl.h"
-#include "EUTelBrickedClusterImpl.h"
-#include "EUTelSparseClusterImpl.h"
 
 // marlin includes ".h"
 #include "marlin/Processor.h"
@@ -21,12 +16,8 @@
 #include <UTIL/LCTime.h>
 #include <EVENT/LCCollection.h>
 #include <IMPL/TrackerHitImpl.h>
-//#include <TrackerHitImpl2.h>
-#include <IMPL/TrackerDataImpl.h>
 #include <IMPL/LCCollectionVec.h>
 #include <UTIL/CellIDDecoder.h>
-#include <UTIL/CellIDEncoder.h>
-
 
 #if defined(USE_AIDA) || defined(MARLIN_USE_AIDA)
 // aida includes <.h>
@@ -36,11 +27,11 @@
 #include <AIDA/ITree.h>
 #endif
 
-
 // gear includes <.h>
 #include "marlin/Global.h"
 #include <gear/GearMgr.h>
 #include <gear/SiPlanesParameters.h>
+#include <gearxml/GearXML.h>
 
 // system includes <>
 #include <iostream>
@@ -58,11 +49,11 @@ using namespace marlin;
 using namespace eutelescope;
 using namespace gear;
 
-EUTelPreAlign::EUTelPreAlign () :Processor("EUTelPreAlign") {
+EUTelPreAlign::EUTelPreAlign () :Processor("EUTelPreAlign")
+{
   _description = "Apply alignment constants to hit collection";
 
-  registerInputCollection (LCIO::TRACKERHIT, "InputHitCollectionName",
-                           "The name of the input hit collection",
+  registerInputCollection (LCIO::TRACKERHIT, "InputHitCollectionName","The name of the input hit collection",
                            _inputHitCollectionName, string ("hit"));
 
   registerOptionalParameter ("FixedPlane", "SensorID of fixed plane", _fixedID, 0);
@@ -70,17 +61,9 @@ EUTelPreAlign::EUTelPreAlign () :Processor("EUTelPreAlign") {
   registerOptionalParameter("AlignmentConstantLCIOFile","Name of LCIO db file where alignment constantds will be stored", 
 			    _alignmentConstantLCIOFile, std::string( "alignment.slcio" ) );
 
-  registerOptionalParameter("HotPixelCollectionName", "This is the name of the hot pixel collection that clusters should be checked against (optional). ",
-			    _hotPixelCollectionName, static_cast< string > ( "" ));
-
-  registerProcessorParameter ("Events",
-                              "How many events should be used for an approximation to the X,Y shifts (pre-alignment)? (default=50000)",
+  registerProcessorParameter ("Events", "How many events should be used for an approximation to the X,Y shifts (pre-alignment)? (default=50000)",
                               _events, static_cast <int> (50000) );
 
-  registerOptionalParameter("ReferenceCollection","reference hit collection name ", _referenceHitCollectionName, static_cast <string> ("referenceHit") );
- 
-  registerOptionalParameter("UseReferenceCollection","Do you want the reference hit collection to be used for coordinate transformations?",  _useReferenceHitCollection, static_cast< bool   > ( true ));
- 
   registerOptionalParameter("ResidualsXMin","Minimal values of the hit residuals in the X direction for a correlation band. Note: these numbers are ordered according to the z position of the sensors and NOT according to the sensor id.",_residualsXMin, std::vector<float > (6, -10.) );
 
   registerOptionalParameter("ResidualsYMin","Minimal values of the hit residuals in the Y direction for a correlation band. Note: these numbers are ordered according to the z position of the sensors and NOT according to the sensor id.",_residualsYMin, std::vector<float > (6, -10.) );
@@ -89,8 +72,7 @@ EUTelPreAlign::EUTelPreAlign () :Processor("EUTelPreAlign") {
 
   registerOptionalParameter("ResidualsYMax","Maximal values of the hit residuals in the Y direction for a correlation band. Note: these numbers are ordered according to the z position of the sensors and NOT according to the sensor id.",_residualsYMax, std::vector<float > (6,  10.) );
 
-  registerOptionalParameter ("MinNumberOfCorrelatedHits",
-			     "If there are more then this number of correlated hits (planes->track candidate) (default=5)",
+  registerOptionalParameter ("MinNumberOfCorrelatedHits", "If there are more then this number of correlated hits (planes->track candidate) (default=5)",
 			     _minNumberOfCorrelatedHits, static_cast <int> (5) );
 
   registerOptionalParameter("HistogramFilling","Switch on or off the histogram filling",_fillHistos, static_cast< bool > ( true ) );
@@ -99,17 +81,12 @@ EUTelPreAlign::EUTelPreAlign () :Processor("EUTelPreAlign") {
 
 
 void EUTelPreAlign::init () {
-
-  // this method is called only once even when the rewind is active
-
-  printParameters ();
+  //for info, good idea to:
+  printParameters();
 
   // set to zero the run and event counters
-  _iRun = 0;  _iEvt = 0;
-
-  _UsefullHotPixelCollectionFound = 0; 
-
-  _referenceHitVec = 0;
+  _iRun = 0;  
+  _iEvt = 0;
 
   // clear the sensor ID vector
   _sensorIDVec.clear();
@@ -121,11 +98,12 @@ void EUTelPreAlign::init () {
   // clear the sensor ID vector (z-axis order)
   _sensorIDVecZOrder.clear();
 
-  //
+  //get parameters from GEAR
   _siPlanesParameters  = const_cast<SiPlanesParameters* > (&(Global::GEAR->getSiPlanesParameters()));
   _siPlanesLayerLayout = const_cast<SiPlanesLayerLayout*> ( &(_siPlanesParameters->getSiPlanesLayerLayout() ));
 
-  for( int iPlane = 0 ; iPlane < _siPlanesLayerLayout->getNLayers(); iPlane++ ) {
+  for( int iPlane = 0 ; iPlane < _siPlanesLayerLayout->getNLayers(); iPlane++ ) 
+  {
 
     if(_siPlanesLayerLayout->getID(iPlane) == _fixedID ) { 
       //Get Zpos of ref plane
@@ -206,84 +184,7 @@ void EUTelPreAlign::processRunHeader (LCRunHeader * rdr) {
   ++_iRun;
 }
 
-
-void  EUTelPreAlign::FillHotPixelMap(LCEvent *event)
-{
-
-  if( _hotPixelCollectionName.empty()) return;
-
-  LCCollectionVec *hotPixelCollectionVec = 0;
-  try 
-    {
-      hotPixelCollectionVec = static_cast< LCCollectionVec* > ( event->getCollection( _hotPixelCollectionName  ) );
-      streamlog_out ( DEBUG5 ) << "Hotpixel database " << _hotPixelCollectionName.c_str() << " found" << endl; 
-    }
-  catch (...)
-    {
-      streamlog_out ( WARNING5 ) << "Hotpixel database " << _hotPixelCollectionName.c_str() << " not found" << endl; 
-      return;
-    }
-
-  CellIDDecoder<TrackerDataImpl> cellDecoder( hotPixelCollectionVec );
-	
-  for(int i=0; i<  hotPixelCollectionVec->getNumberOfElements(); i++)
-    {
-      TrackerDataImpl* hotPixelData = dynamic_cast< TrackerDataImpl *> ( hotPixelCollectionVec->getElementAt( i ) );
-      SparsePixelType  type         = static_cast<SparsePixelType> (static_cast<int> (cellDecoder( hotPixelData )["sparsePixelType"]));
-
-      int sensorID              = static_cast<int > ( cellDecoder( hotPixelData )["sensorID"] );
-
-      if( type  ==  kEUTelGenericSparsePixel )
-	{  
-	  auto_ptr<EUTelSparseClusterImpl< EUTelGenericSparsePixel > > m26Data( new EUTelSparseClusterImpl< EUTelGenericSparsePixel >   ( hotPixelData ) );
-
-	  std::vector<EUTelGenericSparsePixel*> m26PixelVec;
-	  EUTelGenericSparsePixel m26Pixel;
-	  //Push all single Pixels of one plane in the m26PixelVec
-
-	  for(  unsigned int iPixel = 0; iPixel < m26Data->size(); iPixel++ ) 
-	    {
-              std::vector<int> m26ColVec();
-              m26Data->getSparsePixelAt( iPixel, &m26Pixel);
-
-              try
-		{
-		  _hotPixelMap[sensorID].push_back(std::make_pair(m26Pixel.getXCoord(), m26Pixel.getYCoord()));
-		}
-              catch(...)
-		{
-		  streamlog_out ( ERROR5 ) << " cannot add pixel to hotpixel map! SensorID: "  << sensorID << ", X:" << m26Pixel.getXCoord() << ", Y:" << m26Pixel.getYCoord() << endl; 
-		  abort();
-		}
-	    }
-	}          
-      else
-	{
-	  _UsefullHotPixelCollectionFound = 0;
-	}  	
-    }
-}
-
 void EUTelPreAlign::processEvent (LCEvent * event) {
-
-  if(  isFirstEvent() )
-    {
-
-      FillHotPixelMap(event);
-
-      if(  _useReferenceHitCollection ) 
-	{
-	  try{
-
-	    _referenceHitVec = dynamic_cast < LCCollectionVec * > (event->getCollection( _referenceHitCollectionName));
-	  }
-	  catch(...)
-	    {
-	      _referenceHitVec = 0;
-	      _useReferenceHitCollection = false;
-	    }
-	}
-    }
 
   ++_iEvt;
 
@@ -307,39 +208,38 @@ void EUTelPreAlign::processEvent (LCEvent * event) {
     std::vector<float> residY;
     std::vector<PreAligner*> prealign;
 
-    //Loop over hits in fixed plane:
+    //Loop over all hits and determine the hit on the fixed plane:
+    for( size_t ref = 0; ref < inputCollectionVec->size(); ref++ )
+    {
+      TrackerHitImpl* refHit = dynamic_cast<TrackerHitImpl*>( inputCollectionVec->getElementAt(ref) );
+      const double* refPos = refHit->getPosition();
 
-    for( size_t ref = 0; ref < inputCollectionVec->size(); ref++ )  {
-
-      TrackerHitImpl * refHit = dynamic_cast< TrackerHitImpl * >  ( inputCollectionVec->getElementAt( ref ) ) ;
-      const double * refPos = refHit->getPosition();
-
+      //if the hit is the one on the fixed plane, we go further, otherwise we try the next hit
       int sensorID = hitDecoder(refHit)["sensorID"];
-
-      // identify fixed plane
       if( sensorID != _fixedID ) continue;
 
       residX.clear();
       residY.clear();
       prealign.clear();
 
-      for( size_t iHit = 0; iHit < inputCollectionVec->size(); iHit++) {
-
-	TrackerHitImpl * hit = dynamic_cast< TrackerHitImpl * >  ( inputCollectionVec->getElementAt( iHit ) ) ;
-        if( hitContainsHotPixels(hit) ) continue;
+      //Now we again loop over all hits and compute the residuals in comparison
+      for( size_t iHit = 0; iHit < inputCollectionVec->size(); iHit++)
+      {
+	TrackerHitImpl* hit = dynamic_cast<TrackerHitImpl*>( inputCollectionVec->getElementAt(iHit) );
         
         const double * pos = hit->getPosition();
-        int iHitID = hitDecoder(hit)["sensorID"]; 
 
+	//we dont consider the case that they equal
+        int iHitID = hitDecoder(hit)["sensorID"]; 
         if( iHitID == _fixedID ) continue;
-        bool gotIt(false);
+        
+	bool gotIt = false;
 
 	for(size_t ii = 0; ii < _preAligners.size(); ii++)
-	  {
-
+	{
 	    PreAligner& pa = _preAligners.at(ii);
 
-	    if( pa.getIden() != iHitID  ) { continue; }
+	    if( pa.getIden() != iHitID  ) continue;
 
 	    gotIt = true;
 
@@ -348,20 +248,22 @@ void EUTelPreAlign::processEvent (LCEvent * event) {
 
 	    int idZ = _sensorIDtoZOrderMap[ iHitID ];
 
+	    //check if the residuals are inside the defined window
 	    if( 
 	       (_residualsXMin[idZ] < correlationX ) && ( correlationX < _residualsXMax[idZ]) &&
 	       (_residualsYMin[idZ] < correlationY ) && ( correlationY < _residualsYMax[idZ]) 
-		) {
+		) 
+	    {
 	      residX.push_back( correlationX );
 	      residY.push_back( correlationY );
 	      prealign.push_back(&pa);
 	    }
 	    break;
-	  }
-	if( not gotIt ) 
-	  {
+        }
+	if( !gotIt ) 
+	{
 	    streamlog_out ( ERROR5 ) << "Mismatched hit at " << pos[2] << endl;
-	  }
+	}
       }
 
       if( prealign.size() > static_cast< unsigned int >(_minNumberOfCorrelatedHits) && residX.size() == residY.size() ) {
@@ -388,94 +290,6 @@ void EUTelPreAlign::processEvent (LCEvent * event) {
 
 }
 
-bool EUTelPreAlign::hitContainsHotPixels( TrackerHitImpl   * hit) 
-{
-  bool skipHit = false;
-
-  // if no hot pixel map was loaded, just return here
-  if( _hotPixelMap.size() == 0) return 0;
-
-  try
-    {
-      LCObjectVec clusterVector = hit->getRawHits();
-
-      if ( hit->getType() == kEUTelSparseClusterImpl ) 
-	{
-	  TrackerDataImpl * clusterFrame = static_cast<TrackerDataImpl*> ( clusterVector[0] );
-	  eutelescope::EUTelSparseClusterImpl< eutelescope::EUTelGenericSparsePixel > *cluster = new eutelescope::EUTelSparseClusterImpl< eutelescope::EUTelGenericSparsePixel >(clusterFrame);
-
-	  int sensorID = cluster->getDetectorID();
-
-	  for ( unsigned int iPixel = 0; iPixel < cluster->size(); iPixel++ ) 
-	    {
-	      EUTelGenericSparsePixel m26Pixel;
-	      cluster->getSparsePixelAt( iPixel, &m26Pixel);
-	      {
-		try{
-		  if( std::find(_hotPixelMap.at(sensorID).begin(), 
-				_hotPixelMap.at(sensorID).end(),
-				std::make_pair(m26Pixel.getXCoord(),m26Pixel.getYCoord()))
-		      != _hotPixelMap.at(sensorID).end()){ 
-		    skipHit = true; 	      
-		    delete cluster;                        			  
-		    return true; // if TRUE  this hit will be skipped
-		  }
-		}
-		catch(const std::out_of_range& oor){
-		  streamlog_out(DEBUG0) << " Could not find hot pixel map for sensor ID " 
-					<< sensorID << ": " << oor.what() << endl;
-		}
-	      }
-	    }
-
-	  delete cluster;
-	  return 0;
-	} 
-      else if ( hit->getType() == kEUTelBrickedClusterImpl ) 
-	{
-
-	  // fixed cluster implementation. Remember it
-	  //  can come from
-	  //  both RAW and ZS data
-   
-	  streamlog_out ( WARNING5 ) << " Hit type kEUTelBrickedClusterImpl is not implemented in hotPixel finder method, all pixels are considered for PreAlignment." <<  endl;
-
-	} 
-      else if ( hit->getType() == kEUTelDFFClusterImpl ) 
-	{
-
-	  // fixed cluster implementation. Remember it can come from
-	  // both RAW and ZS data
-	  streamlog_out ( WARNING5 ) << " Hit type kEUTelDFFClusterImpl is not implemented in hotPixel finder method, all pixels are considered for PreAlignment." <<  endl;
-	} 
-      else if ( hit->getType() == kEUTelFFClusterImpl ) 
-	{
-
-	  // fixed cluster implementation. Remember it can come from
-	  // both RAW and ZS data
-	  streamlog_out ( WARNING5 ) << " Hit type kEUTelFFClusterImpl is not implemented in hotPixel finder method, all pixels are considered for PreAlignment." <<  endl;
-	} 
-      else
-	{
-	  streamlog_out ( WARNING5 ) << " Hit type is not known and is not implemented in hotPixel finder method, all pixels are considered for PreAlignment." <<  endl;
-	}
-    }
-  catch (exception& e)
-    {
-      streamlog_out(ERROR4) << "something went wrong in EUTelPreAlign::hitContainsHotPixels: " << e.what() << endl;
-    }
-  catch(...)
-    { 
-      // if anything went wrong in the above return FALSE, meaning do not skip this hit
-    
-      streamlog_out(ERROR4) << "something went wrong in EUTelPreAlign::hitContainsHotPixels " << endl;
-      return 0;
-    }
-
-  // if none of the above worked return FALSE, meaning do not skip this hit
-  return 0;
-}
-      
 void EUTelPreAlign::end() {
   LCWriter * lcWriter = LCFactory::getInstance()->createLCWriter();
   try {
@@ -539,6 +353,26 @@ void EUTelPreAlign::end() {
     constant->setSensorID( sensorID );
     constantsCollection->push_back( constant );
     streamlog_out ( MESSAGE5 ) << (*constant) << endl;
+  
+    int GEARID = -1;
+    for(int GEARLayers = 0; GEARLayers < _siPlanesLayerLayout->getNLayers(); GEARLayers++) 
+    {
+	if(_siPlanesLayerLayout->getID(GEARLayers) == sensorID )
+	{
+		GEARID = GEARLayers;
+		break;
+	}
+    }
+    
+    double sensX = _siPlanesLayerLayout->getSensitivePositionX(GEARID);
+    double sensY = _siPlanesLayerLayout->getSensitivePositionY(GEARID);
+  
+    sensX -= _preAligners.at(ii).getPeakX();
+    sensY -= _preAligners.at(ii).getPeakY();
+
+    _siPlanesLayerLayout->setLayerPositionX(GEARID, sensX);
+    _siPlanesLayerLayout->setLayerPositionY(GEARID, sensY);
+
   }
 
   streamlog_out( DEBUG5 ) << " adding Collection " << "alignment " << endl;
@@ -547,5 +381,7 @@ void EUTelPreAlign::end() {
   lcWriter->writeEvent( event );
   delete event;
   lcWriter->close();
+
+  GearXML::createXMLFile(Global::GEAR,"updatedGEAR.xml");
 }
 #endif
