@@ -72,10 +72,20 @@ void EUTelProcessorTransformFromGEAR::init()
 	
 		_GEAREntriesMap[sensorID] = entries;
 
-		std::cout << "For sensor: " << sensorID << "Offset vaules: " << entries.offX << "," << entries.offY << "," << entries.offZ << std::endl;
+		//Flipping the sensitive area is done via the 2x2 block entries in the upper left corner
+		Eigen::Matrix4d flipMatrix = Eigen::Matrix4d::Identity();
+		flipMatrix.block(0,0,2,2) << entries.r1, entries.r2, entries.r3, entries.r4;
+		_flipMatrix[sensorID] = flipMatrix;
+	
+		//Using 4D rep to do translations
+		Eigen::Matrix4d offsetMatrix = Eigen::Matrix4d::Identity();
+		offsetMatrix.block(0,3,3,1) << entries.offX, entries.offY, entries.offZ;
+		_offsetMatrix[sensorID] = offsetMatrix;
+		//std::cout << offsetMatrix << std::endl;
+		//
+		//TODO: Rotation	
 	}
 
-	//Prepare Rotation Matrix!
 }
 
 void EUTelProcessorTransformFromGEAR::processRunHeader(LCRunHeader* rdr)

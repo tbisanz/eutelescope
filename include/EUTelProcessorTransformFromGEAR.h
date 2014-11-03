@@ -26,9 +26,11 @@
 #include <map>
 #include <vector>
 
+//EIGEN includes
+#include <Eigen/Core>
 
 namespace eutelescope {
- 
+
 struct GEAREntries
 {
 	double r1, r2, r3, r4;
@@ -53,6 +55,8 @@ class EUTelProcessorTransformFromGEAR: public marlin::Processor
 
   private:
 	std::map<int,GEAREntries> _GEAREntriesMap;
+	std::map<int, Eigen::Matrix4d> _flipMatrix;
+	std::map<int, Eigen::Matrix4d> _offsetMatrix;
 
   protected:
 	std::string _inputHitCollectionName;
