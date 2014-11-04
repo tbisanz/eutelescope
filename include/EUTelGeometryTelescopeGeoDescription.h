@@ -29,7 +29,6 @@
 // EUTELESCOPE
 #include "EUTelUtility.h"
 #include "EUTelGenericPixGeoMgr.h"
-//#include "EUTelGenericPixGeoDescr.h"
 
 // ROOT
 #if defined(USE_ROOT) || defined(MARLIN_USE_ROOT)
@@ -38,15 +37,10 @@
 #error *** You need ROOT to compile this code.  *** 
 #endif
 
-
-//#ifdef USE_TGEO
 // ROOT
 #include "TGeoManager.h"
 #include "TGeoMatrix.h"
 #include "TVector3.h"
-
-
-//#endif //USE_TGEO
 
 // built only if GEAR is available
 #ifdef USE_GEAR
@@ -61,7 +55,33 @@
 
 namespace eutelescope {
 
-    namespace geo {
+    namespace geo{
+
+	struct EUTelPlane
+	{
+		/**Spatial location*/
+		double xPos, yPos, zPos;
+		/**Spatial location errors/uncertainties*/
+		//double xPosErr, yPosErr, zPosErr;
+		/**Euler rotations*/
+		double alpha, beta, gamma;
+		/**Euler uncertainties*/
+		//double alphaErr, betaErr, gammaErr;
+		/**Pixel geometry name*/
+		std::string pixGeoName;
+		/**2D flip entries*/
+		double r1, r2, r3, r4;
+		/**Size of plane*/
+		double xSize, ySize, zSize;
+		/**Pixel counts*/
+		int xPixelNo, yPixelNo;
+		/**Pixel pitch*/
+		double xPitch, yPitch;
+		/**Radiation length TODO: UNIT*/
+		double radLength;
+		/**Resolution of sensor*/
+		double xRes, yRes;
+	};
 
         // Iterate over registered GEAR objects and construct their TGeo representation
         const Double_t PI     = 3.141592653589793;
@@ -79,7 +99,6 @@ namespace eutelescope {
 
             /** need only for pede2lcio*/
             gear::GearMgr* _gearManager;
-
 
             /** */ 
             bool _siPlanesDefined;
@@ -118,111 +137,109 @@ namespace eutelescope {
             /** set methods */
 
             /** set X position  */
-            void setPlaneXPosition(int sensorID, double value);
+            void setPlaneXPosition(int sensorID, double value){ _planeSetup[sensorID].xPos = value; };
  
             /** set Y position  */
-            void setPlaneYPosition(int sensorID, double value);
+            void setPlaneYPosition(int sensorID, double value){ _planeSetup[sensorID].yPos = value; };
  
             /** set Z position  */
-            void setPlaneZPosition(int sensorID, double value);
+            void setPlaneZPosition(int sensorID, double value){ _planeSetup[sensorID].zPos = value; };
  
             /** set X rotation  */
-            void setPlaneXRotation(int sensorID, double value);
+            void setPlaneXRotation(int sensorID, double value){ _planeSetup[sensorID].alpha = value; };
  
             /** set Y rotation  */
-            void setPlaneYRotation(int sensorID, double value);
+            void setPlaneYRotation(int sensorID, double value){ _planeSetup[sensorID].beta = value; };
  
             /** set Z rotation  */
-            void setPlaneZRotation(int sensorID, double value);
+            void setPlaneZRotation(int sensorID, double value){ _planeSetup[sensorID].gamma = value; };
  
             /** set X rotation  */
-            void setPlaneXRotationRadians(int sensorID, double value /* in Radians */);
+            void setPlaneXRotationRadians(int sensorID, double value /* in Radians */){ _planeSetup[sensorID].alpha = value*DEG; };
  
             /** set Y rotation  */
-            void setPlaneYRotationRadians(int sensorID, double value /* in Radians */);
+            void setPlaneYRotationRadians(int sensorID, double value /* in Radians */){ _planeSetup[sensorID].beta = value*DEG; };
  
             /** set Z rotation  */
-            void setPlaneZRotationRadians(int sensorID, double value /* in Radians */);
+            void setPlaneZRotationRadians(int sensorID, double value /* in Radians */){ _planeSetup[sensorID].gamma = value*DEG; };
+//GETTER
+            /** */ 
+            float siPlaneRotation1(int sensorID){ return _planeSetup.at(sensorID).r1; };
 
             /** */ 
-            float siPlaneRotation1(int sensorID);
+            float siPlaneRotation2(int sensorID){ return _planeSetup.at(sensorID).r2; };
 
             /** */ 
-            float siPlaneRotation2(int sensorID);
+            float siPlaneRotation3(int sensorID){ return _planeSetup.at(sensorID).r3; };
 
             /** */ 
-            float siPlaneRotation3(int sensorID);
-
-            /** */ 
-            float siPlaneRotation4(int sensorID);
+            float siPlaneRotation4(int sensorID){ return _planeSetup.at(sensorID).r4; };
  
             /** X coordinate of center of sensor 
              * with given ID in global coordinate frame */
-            double siPlaneXPosition( int );
+            double siPlaneXPosition(int sensorID){ return _planeSetup.at(sensorID).xPos; };
             
             /** Y coordinate of center of sensor 
              * with given ID in global coordinate frame */
-            double siPlaneYPosition( int );
+            double siPlaneYPosition(int sensorID){ return _planeSetup.at(sensorID).yPos; };
             
             /** Z coordinate of center of sensor 
              * with given ID in global coordinate frame */
-            double siPlaneZPosition( int );
+            double siPlaneZPosition(int sensorID){ return _planeSetup.at(sensorID).zPos; };
             
             /** Rotation around X axis of the global coordinate frame */
-            double siPlaneXRotation( int );
+            double siPlaneXRotation(int sensorID){ return _planeSetup.at(sensorID).alpha; };
             
             /** Rotation around Y axis of global coordinate frame */
-            double siPlaneYRotation( int );
+            double siPlaneYRotation(int sensorID){ return _planeSetup.at(sensorID).beta; };
             
             /** Rotation around Z axis of global coordinate frame */
-            double siPlaneZRotation( int );
+            double siPlaneZRotation(int sensorID){ return _planeSetup.at(sensorID).gamma; };
 
              /** Rotation around X axis of the global coordinate frame */
-            double siPlaneXRotationRadians( int );
+            double siPlaneXRotationRadians(int sensorID){ return _planeSetup.at(sensorID).alpha*RADIAN; };
             
             /** Rotation around Y axis of global coordinate frame */
-            double siPlaneYRotationRadians( int );
+            double siPlaneYRotationRadians(int sensorID){ return _planeSetup.at(sensorID).beta*RADIAN; };
             
             /** Rotation around Z axis of global coordinate frame */
-            double siPlaneZRotationRadians( int );
+            double siPlaneZRotationRadians(int sensorID){ return _planeSetup.at(sensorID).gamma*RADIAN; };
 
-          
             /** Sensor X side size */
-            double siPlaneXSize( int );
+            double siPlaneXSize(int sensorID){ return _planeSetup.at(sensorID).xSize; };
             
             /** Sensor Y side size */
-            double siPlaneYSize( int );
+            double siPlaneYSize(int sensorID){ return _planeSetup.at(sensorID).ySize; };
             
             /** Sensor Z side size */
-            double siPlaneZSize( int );
+            double siPlaneZSize(int sensorID){ return _planeSetup.at(sensorID).zSize; };
  
             /** Sensor X side pixel pitch [mm] */
-            double siPlaneXPitch( int );
+            double siPlaneXPitch(int sensorID){ return _planeSetup.at(sensorID).xPitch; };
             
             /** Sensor Y side pixel pitch [mm] */
-            double siPlaneYPitch( int );
+            double siPlaneYPitch(int sensorID){ return _planeSetup.at(sensorID).yPitch; };
 
             /** Sensor X side size in pixels */
-            double siPlaneXNpixels( int );
+            double siPlaneXNpixels(int sensorID){ return _planeSetup.at(sensorID).xPixelNo; };
             
             /** Sensor Y side size in pixels */
-            double siPlaneYNpixels( int );
+            double siPlaneYNpixels(int sensorID){ return _planeSetup.at(sensorID).yPixelNo; };
  
             /** Sensor X side size in pixels */
-            double siPlaneXResolution( int );
+            double siPlaneXResolution(int sensorID){ return _planeSetup.at(sensorID).xRes; };
             
             /** Sensor Y side size in pixels */
-            double siPlaneYResolution( int );
+            double siPlaneYResolution(int sensorID){ return _planeSetup.at(sensorID).yRes; };
             
             /** Sensor medium radiation length */
-            double siPlaneRadLength( int );
+            double siPlaneRadLength(int sensorID){ return _planeSetup.at(sensorID).radLength; };
             
 	    /** Name of pixel geometry library */
-	    std::string geoLibName( int );
+	    std::string geoLibName(int sensorID){ return _planeSetup.at(sensorID).pixGeoName; };
             
 	    /** Plane normal vector (nx,ny,nz) */
-            TVector3 siPlaneNormal( int );
-            
+            TVector3 siPlaneNormal(int sensorID);
             
             /** Map from sensor ID to number along Z */
             const std::map<int, int>& sensorZOrdertoIDs() const;
@@ -257,8 +274,7 @@ namespace eutelescope {
 	    void updateTrackerPlanesLayout(); 
 
 
-            /** housing for the above two 
-              */    
+            /** housing for the above two */    
             void readGear();
 
             void translateSiPlane2TGeo(TGeoVolume*,int );
@@ -370,6 +386,9 @@ namespace eutelescope {
             /** Vector of Sensor IDs */
             EVENT::IntVec _sensorIDVec;
 
+	    /** Z coordinate of the sensors centers in global coordinate frame [mm]*/
+	    EVENT::DoubleVec _siPlaneZPosition;
+
             /** Sensor ID map (inverse sensorIDVec) */
             std::map< int, int > _sensorIDVecMap;
 
@@ -379,76 +398,13 @@ namespace eutelescope {
             /** Map from sensor ID to number along Z */
             std::map<int, int> _sensorIDtoZOrderMap;
 
-            /** X coordinate of the sensors centers in global coordinate frame [mm]*/
-            EVENT::DoubleVec _siPlaneXPosition;
-            
-            /** Y coordinate of the sensors centers in global coordinate frame [mm]*/
-            EVENT::DoubleVec _siPlaneYPosition;
-            
-            /** Z coordinate of the sensors centers in global coordinate frame [mm]*/
-            EVENT::DoubleVec _siPlaneZPosition;
-            
-            /** Rotation around X axis of the global coordinate frame [rad]*/
-            EVENT::DoubleVec _siPlaneXRotation;
-            
-            /** Rotation around Y axis of global coordinate frame [rad]*/
-            EVENT::DoubleVec _siPlaneYRotation;
-            
-            /** Rotation around Z axis of global coordinate frame [rad]*/
-            EVENT::DoubleVec _siPlaneZRotation;
-           
-            /** deprecated rotaion natrix elements */
-            EVENT::DoubleVec _siPlaneRotation1; 
-
-            /** deprecated rotaion natrix elements */
-            EVENT::DoubleVec _siPlaneRotation2; 
-
-            /** deprecated rotaion natrix elements */
-            EVENT::DoubleVec _siPlaneRotation3; 
-
-            /** deprecated rotaion natrix elements */
-            EVENT::DoubleVec _siPlaneRotation4; 
-
-	    /** Sensor X side length [mm]*/
-            EVENT::DoubleVec _siPlaneXSize;
-            
-            /** Sensor Y side length [mm]*/
-            EVENT::DoubleVec _siPlaneYSize;
-            
-            /** Sensor Z side length [mm]*/
-            EVENT::DoubleVec _siPlaneZSize;
- 
-            /** Sensor X side pitch length [mm]*/
-            EVENT::DoubleVec _siPlaneXPitch;
-            
-            /** Sensor Y side pitch length [mm]*/
-            EVENT::DoubleVec _siPlaneYPitch;
- 
-            /** Sensor X side pitch length [pixels]*/
-            EVENT::DoubleVec _siPlaneXNpixels;
-            
-            /** Sensor Y side pitch length [pixels]*/
-            EVENT::DoubleVec _siPlaneYNpixels;
-
-            /** Sensor X side pitch length [pixels]*/
-            EVENT::DoubleVec _siPlaneXResolution;
-            
-            /** Sensor Y side pitch length [pixels]*/
-            EVENT::DoubleVec _siPlaneYResolution;
-            
-            /** Radiation length of the sensor [mm]*/
-            EVENT::DoubleVec _siPlaneRadLength;
-
-	    /** Name of the pixel geometry library for each plane*/
-	    EVENT::StringVec _geoLibName;
-
-            /** Number of planes including DUT */
+	    /** Number of planes including DUT */
             size_t _nPlanes;
 
             /** Pointer to the pixel geometry manager */
             EUTelGenericPixGeoMgr* _pixGeoMgr;
-            //#ifdef  USE_TGEO
 
+	    std::map<int, EUTelPlane> _planeSetup;
         private:
 	    /** Flag if geoemtry is already initialized */
 	    bool _isGeoInitialized;
@@ -478,8 +434,6 @@ namespace eutelescope {
         inline EUTelGeometryTelescopeGeoDescription& gGeometry( gear::GearMgr* _g = marlin::Global::GEAR ) {
                 return EUTelGeometryTelescopeGeoDescription::getInstance( _g ); 
         }
-
-        
     } // namespace geo
 } // namespace eutelescope
 
