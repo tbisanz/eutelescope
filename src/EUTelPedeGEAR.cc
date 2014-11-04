@@ -387,7 +387,7 @@ void EUTelPedeGEAR::end() {
 			std::getline( millepede, line );
 
 			int counter = 0;
-			//to get sensorID = _orderedSensorID.at(counter) 
+			int sensorID = _orderedSensorID.at(counter); 
 
 			while( !millepede.eof() )
 			{
@@ -507,9 +507,9 @@ void EUTelPedeGEAR::end() {
 				// right place to add the constant to the collection
 				if( goodLine )
 				{
-					std::cout 	<< "Alignment determined to be: xOff: " << xOff << " , yOff: " << yOff << " , zOff: " << zOff << " , alpha: " 
-							<< alpha << " , beta: " << beta << " , gamma: " << gamma << std::endl;
-					//constant->setSensorID( _orderedSensorID.at( counter ) );
+					sensorID = _orderedSensorID.at( counter );
+					std::cout 	<< "Alignment on sensor " << sensorID << " determined to be: xOff: " << xOff << ", yOff: " << yOff << ", zOff: " << zOff << ", alpha: " 
+							<< alpha << ", beta: " << beta << ", gamma: " << gamma << std::endl;
 					counter++;
 				}
 			}
