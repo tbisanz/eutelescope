@@ -512,13 +512,18 @@ void EUTelPedeGEAR::end() {
 							<< alpha << ", beta: " << beta << ", gamma: " << gamma << std::endl;
 					counter++;
 
-					//Get the old rotation matrix:
+					//The old rotation matrix is well defined by GEAR file
 					Eigen::Matrix3d rotOld = geo::gGeometry().rotationMatrixFromAngles( sensorID);
+					//The new rotation matrix is obtained via the alpha, beta, gamma from MillepedeII
 					Eigen::Matrix3d rotAlign = geo::gGeometry().rotationMatrixFromAngles( alpha, beta, gamma);
+					//The corrected rotation is given by: rotAlign*rotOld, from this rotation we can extract the
+					//updated alpha', beta' and gamma'
 					Eigen::Vector3d newCoeff = geo::gGeometry().getRotationAnglesFromMatrix(rotAlign*rotOld);
-					std::cout << "Old rotation matrix: " << rotOld << std::endl; 
-					std::cout << "Align rotation matrix: " << rotAlign << std::endl; 
-					std::cout << "Updated coefficients: " << newCoeff << std::endl; 
+
+					//std::cout << "Old rotation matrix: " << rotOld << std::endl; 
+					//std::cout << "Align rotation matrix: " << rotAlign << std::endl; 
+					//std::cout << "Updated coefficients: " << newCoeff*57.29 << std::endl; 
+					std::cout << "This results in the updated rotations (alpha', beta', gamma'): " << newCoeff[0] << ", " << newCoeff[1] << ", " << newCoeff[2] << std::endl;
 				}
 			}
 

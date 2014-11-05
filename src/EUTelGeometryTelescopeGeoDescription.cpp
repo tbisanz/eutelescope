@@ -637,7 +637,8 @@ Eigen::Matrix3d EUTelGeometryTelescopeGeoDescription::rotationMatrixFromAngles(i
  *  and finally the gamam rotation around the new Z'' axis */
 Eigen::Matrix3d EUTelGeometryTelescopeGeoDescription::rotationMatrixFromAngles(long double alpha, long double beta, long double gamma)
 {
-	std::cout << "alpha, beta, gamma: " << alpha << ", " << beta << ", " << gamma << std::endl;
+	//Eigen::IOFormat IO(6, 0, ", ", ";\n", "[", "]", "[", "]");
+	//std::cout << "alpha, beta, gamma: " << alpha << ", " << beta << ", " << gamma << std::endl;
 	long double cosA = cos(alpha);
 	long double sinA = sin(alpha);
 	long double cosB = cos(beta);
@@ -645,11 +646,13 @@ Eigen::Matrix3d EUTelGeometryTelescopeGeoDescription::rotationMatrixFromAngles(l
 	long double cosG = cos(gamma);
 	long double sinG = sin(gamma);
 
+	//std::cout << "trig" << cosA << ", " << cosB << ", " << cosG << ", " << sinA << ", " << sinB << ", " << sinG <<  std::endl;
+
 	Eigen::Matrix3d rotMat;
-	rotMat <<	(long)(cosB*cosG),	(long)(sinA*sinB*cosG-cosA*sinG),	(long)(cosA*sinB*cosG+sinA*sinG),
-	      		(long)(cosB*sinG),	(long)(sinA*sinB*sinG+cosA*cosG),	(long)(cosA*sinB*sinG-sinA*cosG),
-			(long)(-sinB),		(long)(sinA*cosB),			(long)(cosA*cosB);
-	std::cout << rotMat << std::endl;
+	rotMat <<	(double)(cosB*cosG),	(double)(sinA*sinB*cosG-cosA*sinG),	(double)(cosA*sinB*cosG+sinA*sinG),
+	      		(double)(cosB*sinG),	(double)(sinA*sinB*sinG+cosA*cosG),	(double)(cosA*sinB*sinG-sinA*cosG),
+			(double)(-sinB),	(double)(sinA*cosB),			(double)(cosA*cosB);
+	//std::cout << rotMat.format(IO) << std::endl;
 	return rotMat;
 }
 
