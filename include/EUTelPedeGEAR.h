@@ -39,6 +39,9 @@
 #include <AIDA/IProfile1D.h>
 #endif
 
+//Eigen
+#include <Eigen/Core>
+
 // system includes <>
 #include <string>
 #include <vector>

@@ -511,6 +511,14 @@ void EUTelPedeGEAR::end() {
 					std::cout 	<< "Alignment on sensor " << sensorID << " determined to be: xOff: " << xOff << ", yOff: " << yOff << ", zOff: " << zOff << ", alpha: " 
 							<< alpha << ", beta: " << beta << ", gamma: " << gamma << std::endl;
 					counter++;
+
+					//Get the old rotation matrix:
+					Eigen::Matrix3d rotOld = geo::gGeometry().rotationMatrixFromAngles( sensorID);
+					Eigen::Matrix3d rotAlign = geo::gGeometry().rotationMatrixFromAngles( alpha, beta, gamma);
+					Eigen::Vector3d newCoeff = geo::gGeometry().getRotationAnglesFromMatrix(rotAlign*rotOld);
+					std::cout << "Old rotation matrix: " << rotOld << std::endl; 
+					std::cout << "Align rotation matrix: " << rotAlign << std::endl; 
+					std::cout << "Updated coefficients: " << newCoeff << std::endl; 
 				}
 			}
 
