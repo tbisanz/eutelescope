@@ -37,6 +37,8 @@
 #error *** You need ROOT to compile this code.  *** 
 #endif
 
+//Eigen
+#include <Eigen/Core>
 // ROOT
 #include "TGeoManager.h"
 #include "TGeoMatrix.h"
@@ -253,6 +255,10 @@ namespace eutelescope {
             
             /** Vector of all sensor IDs */
             const EVENT::IntVec& sensorIDsVec() const;
+
+	    Eigen::Vector3d getRotationAnglesFromMatrix( Eigen::Matrix3d rotMat );
+	    Eigen::Matrix3d rotationMatrixFromAngles(long double alpha, long double beta, long double gamma);
+	    Eigen::Matrix3d rotationMatrixFromAngles(int sensorID);
 
         public:
             virtual ~EUTelGeometryTelescopeGeoDescription();

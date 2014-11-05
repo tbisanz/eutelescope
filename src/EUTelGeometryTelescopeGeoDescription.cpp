@@ -35,13 +35,9 @@
 #include <UTIL/CellIDEncoder.h>
 #include <UTIL/CellIDDecoder.h>
 
-//Eigen include
-#include <Eigen/core>
-
 using namespace eutelescope;
 using namespace geo;
 using namespace std;
-
 
 unsigned EUTelGeometryTelescopeGeoDescription::_counter = 0;
 
@@ -630,6 +626,44 @@ void EUTelGeometryTelescopeGeoDescription::initializeTGeoDescription( std::strin
     return;
 }
 
+
+Eigen::Matrix3d EUTelGeometryTelescopeGeoDescription::rotationMatrixFromAngles(int sensorID)
+{
+	return rotationMatrixFromAngles( (long double)siPlaneXRotationRadians(sensorID), (long double)siPlaneYRotationRadians(sensorID), (long double)siPlaneZRotationRadians(sensorID) );
+}
+
+/** Returns the rotation matrix for given angles
+ *  It alpha rotation is around initial X axis, then beta around the new Y' axis
+ *  and finally the gamam rotation around the new Z'' axis */
+Eigen::Matrix3d EUTelGeometryTelescopeGeoDescription::rotationMatrixFromAngles(long double alpha, long double beta, long double gamma)
+{
+	long double cosA = cos(alpha);
+	long double sinA = sin(alpha);
+	long double cosB = cos(beta);
+	long double sinB = sin(beta);
+	long double cosG = cos(gamma);
+	long double sinG = sin(gamma);
+
+	Eigen::Matrix3d rotMat;
+	rotMat <<	(long)(cosB*cosG),	(long)(sinA*sinB*cosG-cosA*sinG),	(long)(cosA*sinB*cosG+sinA*sinG),
+	      		(long)(cosB*sinG),	(long)(sinA*sinB*sinG+cosA*cosG),	(long)(cosA*sinB*sinG-sinA*cosG),
+			(long)(-sinB),		(long)(sinA*cosB),			(long)(cosA*cosB);
+	return rotMat;
+}
+
+Eigen::Vector3d EUTelGeometryTelescopeGeoDescription::getRotationAnglesFromMatrix(Eigen::Matrix3d rotMat)
+{
+	long double beta = asin((long double)(-rotMat(2,0)));
+	long double cosB = cos(beta);
+
+	long double gamma = asin((long double)(rotMat(1,0)/cosB));
+	long double alpha = asin((long double)(rotMat(2,1)/cosB));
+
+	Eigen::Vector3d vec;
+
+	vec << alpha, beta, gamma;
+	return vec;
+}
 /** Determine id of the sensor in which point is locate
  * 
  * @param globalPos 3D point in global reference frame
