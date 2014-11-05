@@ -14,14 +14,8 @@
 // eutelescope includes ".h"
 #include "EUTelUtility.h"
 
-//#include "TrackerHitImpl2.h"
-#include "IMPL/TrackerHitImpl.h"
-
 // marlin includes ".h"
 #include "marlin/Processor.h"
-
-// marlin util includes
-#include "mille/Mille.h"
 
 // gear includes <.h>
 #include <gear/SiPlanesParameters.h>
@@ -31,32 +25,12 @@
 #include <EVENT/LCRunHeader.h>
 #include <EVENT/LCEvent.h>
 
-// AIDA includes <.h>
-#if defined(USE_AIDA) || defined(MARLIN_USE_AIDA)
-#include <AIDA/IBaseHistogram.h>
-#include <AIDA/IHistogram1D.h>
-#include <AIDA/IHistogram2D.h>
-#include <AIDA/IProfile1D.h>
-#endif
-
 //Eigen
 #include <Eigen/Core>
 
 // system includes <>
 #include <string>
 #include <vector>
-#include <map>
-
-#if defined(USE_ROOT) || defined(MARLIN_USE_ROOT)
-#include <TMinuit.h>
-#include <TSystem.h>
-#include <TMath.h>
-#include <TVector3.h>
-class TMinuit;
-#else
-#error *** You need ROOT to compile this code.  *** 
-#endif
-
 
 namespace eutelescope {
 
@@ -131,21 +105,9 @@ namespace eutelescope {
     IntVec _orderedSensorID_wo_excluded;
 
     //! Sensor ID vector
-    IntVec _sensorIDVec;
     int _alignMode;
     DoubleVec _siPlaneZPosition;
     
-    //! Sensor ID map (inverse sensorIDVec) 
-    std::map< int, int > _sensorIDVecMap;
-    //! Sensor ID vector, 
-    /*! it's position along Z axis
-     */ 
-    IntVec _sensorIDVecZOrder;
-    //! sensor ID to position along Z id
-    /*!
-     */
-    std::map<int, int> _sensorIDtoZOrderMap;
-
     // parameters
     std::vector<unsigned int > _excludePlanes; //only for internal usage
     IntVec _excludePlanes_sensorIDs; //this is going to be
@@ -154,41 +116,7 @@ namespace eutelescope {
     IntVec _FixedPlanes_sensorIDs; //this is going to be
     //set by the user.
     
-    StringVec _pedeSteerAddCmds; // allows user-added commands in the pede steering file
-
-    int _generatePedeSteerfile;
     std::string _pedeSteerfileName;
-    bool _runPede;
-    int _usePedeUserStartValues;
-    FloatVec _pedeUserStartValuesX;
-    FloatVec _pedeUserStartValuesY;
-    FloatVec _pedeUserStartValuesZ;
-    
-    FloatVec _pedeUserStartValuesAlpha;
-    FloatVec _pedeUserStartValuesBeta;
-    FloatVec _pedeUserStartValuesGamma;
-
-    int _inputMode;
-    int _allowedMissingHits;
-    int _mimosa26ClusterChargeMin;
-
-    float _testModeSensorResolution;
-    float _testModeXTrackSlope;
-    float _testModeYTrackSlope;
-
-    FloatVec _testModeSensorZPositions;
-
-    FloatVec _testModeSensorXShifts;
-    FloatVec _testModeSensorYShifts;
-    FloatVec _testModeSensorGamma;
-    FloatVec _testModeSensorAlpha;
-    FloatVec _testModeSensorBeta;
-
-    std::string _alignmentConstantLCIOFile;
-    std::string _alignmentConstantCollectionName;
-
-    IntVec _useSensorRectangular;
-
   private:
 
     //! Run number
@@ -199,23 +127,6 @@ namespace eutelescope {
 
     // Excluded planes
     int _nExcludePlanes;
-
-    // Statistics
-    int _nMilleDataPoints;
-    int _nMilleTracks;
-
-    // Mille
-    Mille * _mille;
-
-    //! Conversion ID map.
-    /*! In the data file, each cluster is tagged with a detector ID
-     *  identify the sensor it belongs to. In the geometry
-     *  description, there are along with the sensors also "passive"
-     *  layers and other stuff. Those are identify by a layerindex. So
-     *  we need a conversion table to go from the detectorID to the
-     *  layerindex.
-     */
-    std::map< int, int > _conversionIdMap;
 
     //! Silicon planes parameters as described in GEAR
     /*! This structure actually contains the following:
@@ -240,15 +151,6 @@ namespace eutelescope {
     gear::SiPlanesLayerLayout * _siPlanesLayerLayout;
 
     size_t _nPlanes;
-
-    std::vector<DoubleVec > _xPos;
-    std::vector<DoubleVec > _yPos;
-    std::vector<DoubleVec > _zPos;
-
-    std::vector<DoubleVec > _trackResidX;
-    std::vector<DoubleVec > _trackResidY;
-    std::vector<DoubleVec > _trackResidZ;
-
   };
 
   //! A global instance of the processor

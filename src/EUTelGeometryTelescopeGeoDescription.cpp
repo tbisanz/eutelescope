@@ -15,6 +15,7 @@
 
 //GEAR
 #include "GEAR.h" //for GEAR exceptions
+#include "gearxml/GearXML.h"
 
 // EUTELESCOPE
 #include "EUTelExceptions.h"
@@ -669,6 +670,7 @@ Eigen::Vector3d EUTelGeometryTelescopeGeoDescription::getRotationAnglesFromMatri
 	vec << alpha, beta, gamma;
 	return vec;
 }
+
 /** Determine id of the sensor in which point is locate
  * 
  * @param globalPos 3D point in global reference frame
@@ -1436,7 +1438,6 @@ TVector3 EUTelGeometryTelescopeGeoDescription::getXYZfromArcLength( float x0, fl
 void EUTelGeometryTelescopeGeoDescription::updateSiPlanesLayout() {
  streamlog_out( MESSAGE1 ) << "EUTelGeometryTelescopeGeoDescription::updateSiPlanesLayout() --- START ---- " << std::endl;
 
-
     gear::SiPlanesParameters*    siplanesParameters = const_cast< gear::SiPlanesParameters*> (&( _gearManager->getSiPlanesParameters()));
     gear::SiPlanesLayerLayout*  siplanesLayerLayout = const_cast< gear::SiPlanesLayerLayout*> (&(_siPlanesParameters->getSiPlanesLayerLayout()));
 
@@ -1448,7 +1449,7 @@ void EUTelGeometryTelescopeGeoDescription::updateSiPlanesLayout() {
     {
         int sensorID =  _sensorIDVec.at(iPlane);
         
-	siplanesLayerLayout->setLayerPositionX(  iPlane, siPlaneXPosition(sensorID) );
+	siplanesLayerLayout->setLayerPositionX( iPlane, siPlaneXPosition(sensorID) );
         siplanesLayerLayout->setLayerPositionY(  iPlane, siPlaneYPosition(sensorID) );
         siplanesLayerLayout->setLayerPositionZ(  iPlane, siPlaneZPosition(sensorID) );
         siplanesLayerLayout->setLayerRotationZY( iPlane, siPlaneXRotation(sensorID) );
@@ -1463,8 +1464,6 @@ void EUTelGeometryTelescopeGeoDescription::updateSiPlanesLayout() {
       _gearManager->setSiPlanesParameters( siplanesParameters ) ;
 
     }
-
-
  streamlog_out( MESSAGE1 ) << "EUTelGeometryTelescopeGeoDescription::updateSiPlanesLayout() --- OVER ---- " << std::endl;
 }
 
@@ -1517,17 +1516,21 @@ void EUTelGeometryTelescopeGeoDescription::updateTrackerPlanesLayout() {
     streamlog_out( MESSAGE1 ) << "EUTelGeometryTelescopeGeoDescription::updateTrackerPlanesLayout() --- OVER ---- " << std::endl;
 }
 
-void EUTelGeometryTelescopeGeoDescription::updateGearManager() {
+void EUTelGeometryTelescopeGeoDescription::updateGearManager()
+{
 
- streamlog_out( MESSAGE1 ) << "EUTelGeometryTelescopeGeoDescription::updateGearManager() --- START ---- " << std::endl;
-
- if( _siPlanesDefined ){
-   updateSiPlanesLayout();
- }
- else if( _telPlanesDefined ){
-   updateTrackerPlanesLayout();
- }
-
- streamlog_out( MESSAGE1 ) << "EUTelGeometryTelescopeGeoDescription::updateGearManager() --- OVER ---- " << std::endl;
+	if( _siPlanesDefined )
+	{
+		updateSiPlanesLayout();
+	}
+	else if( _telPlanesDefined )
+	{
+		updateTrackerPlanesLayout();
+	}
 }
 
+void EUTelGeometryTelescopeGeoDescription::writeGEARFile(std::string filename)
+{
+	updateGearManager();
+	gear::GearXML::createXMLFile(marlin::Global::GEAR, filename);
+}
