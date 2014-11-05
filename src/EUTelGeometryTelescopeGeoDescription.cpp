@@ -35,6 +35,9 @@
 #include <UTIL/CellIDEncoder.h>
 #include <UTIL/CellIDDecoder.h>
 
+//Eigen include
+#include <Eigen/core>
+
 using namespace eutelescope;
 using namespace geo;
 using namespace std;
@@ -42,29 +45,32 @@ using namespace std;
 
 unsigned EUTelGeometryTelescopeGeoDescription::_counter = 0;
 
-EUTelGeometryTelescopeGeoDescription& EUTelGeometryTelescopeGeoDescription::getInstance( gear::GearMgr* _g ) {
-      streamlog_out ( DEBUG0) << "  EUTelGeometryTelescopeGeoDescription::getInstance --- BEGIN ---" << std::endl; 
-      static  EUTelGeometryTelescopeGeoDescription instance;
+EUTelGeometryTelescopeGeoDescription& EUTelGeometryTelescopeGeoDescription::getInstance( gear::GearMgr* _g )
+{
+	static  EUTelGeometryTelescopeGeoDescription instance;
+	unsigned i = EUTelGeometryTelescopeGeoDescription::_counter;
+	
+	//do it only once!
+	if( i < 1 )
+	{
+		instance.setGearManager(_g);
+		instance.readGear();
+	}
 
-      unsigned i = EUTelGeometryTelescopeGeoDescription::_counter;
-      streamlog_out ( DEBUG0) << "  EUTelGeometryTelescopeGeoDescription::getInstance --- iter: " << i << std::endl;  
-      if( i < 1 )  { // do it only once !
-         instance.setGearManager(_g);
-         instance.readGear();
-      }
- 
-      instance.counter();
-      streamlog_out ( DEBUG0) << "  EUTelGeometryTelescopeGeoDescription::getInstance --- END --- " << std::endl; 
+	instance.counter();
+	streamlog_out( DEBUG0) << "  EUTelGeometryTelescopeGeoDescription::getInstance --- END --- " << std::endl; 
 
-      return instance;
+	return instance;
 }
 
-size_t EUTelGeometryTelescopeGeoDescription::nPlanes( ) const {
-    return _nPlanes;
+size_t EUTelGeometryTelescopeGeoDescription::nPlanes( ) const
+{
+	return _nPlanes;
 }
 
-const EVENT::DoubleVec& EUTelGeometryTelescopeGeoDescription::siPlanesZPositions( ) const {
-    return _siPlaneZPosition;
+const EVENT::DoubleVec& EUTelGeometryTelescopeGeoDescription::siPlanesZPositions( ) const
+{
+	return _siPlaneZPosition;
 }
 
 TVector3 EUTelGeometryTelescopeGeoDescription::siPlaneNormal( int planeID )
@@ -76,15 +82,17 @@ TVector3 EUTelGeometryTelescopeGeoDescription::siPlaneNormal( int planeID )
         return normVec;
 }
 
-const std::map<int, int>& EUTelGeometryTelescopeGeoDescription::sensorIDstoZOrder( ) const {
-    return _sensorIDtoZOrderMap;
+const std::map<int, int>& EUTelGeometryTelescopeGeoDescription::sensorIDstoZOrder( ) const
+{
+	return _sensorIDtoZOrderMap;
 }
 
-int EUTelGeometryTelescopeGeoDescription::sensorIDtoZOrder( int planeID ) const {
-    std::map<int,int>::const_iterator it;
-    it = _sensorIDtoZOrderMap.find(planeID);
-    if ( it != _sensorIDtoZOrderMap.end() ) return it->second;
-    return -1;
+int EUTelGeometryTelescopeGeoDescription::sensorIDtoZOrder( int planeID ) const
+{
+	std::map<int,int>::const_iterator it;
+	it = _sensorIDtoZOrderMap.find(planeID);
+	if( it != _sensorIDtoZOrderMap.end() ) return it->second;
+	return -1;
 }
 
 /** Sensor ID vector ordered according to their position along the Z axis (beam axis)
@@ -92,10 +100,9 @@ int EUTelGeometryTelescopeGeoDescription::sensorIDtoZOrder( int planeID ) const 
 int EUTelGeometryTelescopeGeoDescription::sensorZOrderToID( int znumber ) const {
     std::map<int,int>::const_iterator it;
     it = _sensorZOrderToIDMap.find( znumber );
-    if ( it != _sensorZOrderToIDMap.end() ) return it->second;
+    if( it != _sensorZOrderToIDMap.end() ) return it->second;
     return -1;
 }
-
  
             /** Map from sensor ID to number along Z */
 const std::map<int, int>& EUTelGeometryTelescopeGeoDescription::sensorZOrdertoIDs() const {
@@ -218,7 +225,6 @@ void EUTelGeometryTelescopeGeoDescription::readTrackerPlanesLayout() {
     _sensorIDtoZOrderMap.clear();
 
     // data memberS::
-
     _nPlanes = 0; // should be filed based on the length of the sensor vector.// after the loop
 
     // create an array with the z positions of each layer
@@ -1062,16 +1068,16 @@ int EUTelGeometryTelescopeGeoDescription::findNextPlane(  double* lpoint,  doubl
 // 
    if(newpoint==0)
    {
-      streamlog_out ( ERROR0 ) << "::findNextPlane;  newpoint array is void, can not continue..."<<endl;
+      streamlog_out( ERROR0 ) << "::findNextPlane;  newpoint array is void, can not continue..."<<endl;
       return -100;
    }
 
    double normdir = TMath::Sqrt(ldir[0]*ldir[0]+ldir[1]*ldir[1]+ldir[2]*ldir[2]); 
-   streamlog_out ( DEBUG0 ) << "::findNextPlane lpoint: "  << lpoint[0] << " " << lpoint[1] << " "<< lpoint[2] << " " << endl;
+   streamlog_out( DEBUG0 ) << "::findNextPlane lpoint: "  << lpoint[0] << " " << lpoint[1] << " "<< lpoint[2] << " " << endl;
    ldir[0] = ldir[0]/normdir; 
    ldir[1] = ldir[1]/normdir; 
    ldir[2] = ldir[2]/normdir;
-   streamlog_out ( DEBUG0 ) << "::findNextPlane ldir  : "  << ldir  [0] << " " << ldir  [1] << " "<< ldir  [2] << " " << endl;
+   streamlog_out( DEBUG0 ) << "::findNextPlane ldir  : "  << ldir  [0] << " " << ldir  [1] << " "<< ldir  [2] << " " << endl;
  
    for(int ip=0;ip<3;ip++) 
    {
@@ -1085,13 +1091,13 @@ int EUTelGeometryTelescopeGeoDescription::findNextPlane(  double* lpoint,  doubl
    Int_t inode    = node->GetIndex();
    Int_t i        = 0;
 
-   streamlog_out ( DEBUG0 ) << "::findNextPlane look for next node, starting at node: " << node << " id: " << inode  << " currentSensorID: " << currentSensorID << endl;
+   streamlog_out( DEBUG0 ) << "::findNextPlane look for next node, starting at node: " << node << " id: " << inode  << " currentSensorID: " << currentSensorID << endl;
  
 //   double kStep = 1e-03;
    while(  node = gGeoManager->FindNextBoundaryAndStep(  ) )
    {
        inode = node->GetIndex();
-       streamlog_out ( DEBUG0 ) << "::findNextPlane found next node: " << node << " id: " << inode << endl;
+       streamlog_out( DEBUG0 ) << "::findNextPlane found next node: " << node << " id: " << inode << endl;
        const double* point = gGeoManager->GetCurrentPoint();
        const double* dir   = gGeoManager->GetCurrentDirection();
        double ipoint[3] ;
@@ -1110,7 +1116,7 @@ int EUTelGeometryTelescopeGeoDescription::findNextPlane(  double* lpoint,  doubl
        gGeoManager->SetCurrentPoint( ipoint);
        gGeoManager->SetCurrentDirection( idir);
  
-       streamlog_out ( DEBUG0 ) << "::findNextPlane i=" << i  << " " << inode << " " << ipoint[0]  << " " << ipoint[1] << " " << ipoint[2]  << " sensorID:" << sensorID <<  endl;
+       streamlog_out( DEBUG0 ) << "::findNextPlane i=" << i  << " " << inode << " " << ipoint[0]  << " " << ipoint[1] << " " << ipoint[2]  << " sensorID:" << sensorID <<  endl;
        if(sensorID >= 0 && sensorID != currentSensorID ) return sensorID;
    }
 
@@ -1122,7 +1128,7 @@ int EUTelGeometryTelescopeGeoDescription::findNextPlaneEntrance(  double* lpoint
 {
    if(newpoint==0)
    {
-      streamlog_out ( ERROR0 ) << "::findNextPlaneEntrance newpoint array is void, can not continue..."<<endl;
+      streamlog_out( ERROR0 ) << "::findNextPlaneEntrance newpoint array is void, can not continue..."<<endl;
       return -100;
    }
    
@@ -1133,7 +1139,7 @@ int EUTelGeometryTelescopeGeoDescription::findNextPlaneEntrance(  double* lpoint
    Int_t inode =  node->GetIndex();
    Int_t i=0;
 
-   streamlog_out ( DEBUG0 ) << "::findNextPlaneEntrance node: " << node << " id: " << inode << endl;
+   streamlog_out( DEBUG0 ) << "::findNextPlaneEntrance node: " << node << " id: " << inode << endl;
  
 	//Keep looping until you have left this plane volume and are at another. Note FindNextBoundaryAndStep will only take you to the next volume 'node' it will not enter it.
    while( node = _geoManager->FindNextBoundaryAndStep( ) )
@@ -1157,12 +1163,12 @@ int EUTelGeometryTelescopeGeoDescription::findNextPlaneEntrance(  double* lpoint
        _geoManager->SetCurrentPoint( ipoint);
        _geoManager->SetCurrentDirection( idir);
  
-       streamlog_out ( DEBUG0 ) << "Loop number" << i  << ". Index: " << inode << ". Current global point: " << ipoint[0]  << " " << ipoint[1] << " " << ipoint[2]  << " sensorID: " << sensorID << ". Input of expect next sensor: " << nextSensorID << endl;
+       streamlog_out( DEBUG0 ) << "Loop number" << i  << ". Index: " << inode << ". Current global point: " << ipoint[0]  << " " << ipoint[1] << " " << ipoint[2]  << " sensorID: " << sensorID << ". Input of expect next sensor: " << nextSensorID << endl;
        //if( sensorID <0 ) continue;  
        if( sensorID == nextSensorID ) return sensorID;
    }
  
-   streamlog_out ( DEBUG0 ) << "::findNextPlaneEntrance node: " << node << " id: " << inode << " sensorID= " << nextSensorID << " not found" << " returning: 0" << endl;
+   streamlog_out( DEBUG0 ) << "::findNextPlaneEntrance node: " << node << " id: " << inode << " sensorID= " << nextSensorID << " not found" << " returning: 0" << endl;
  
    return -100;
 
@@ -1213,15 +1219,15 @@ streamlog_out(DEBUG5) << "EUTelGeometryTelescopeGeoDescription::findIntersection
 
 
   if ( streamlog_level(DEBUG5) ) {
-		streamlog_out (DEBUG5) << "-------------------------------------------" << std::endl;
-	  streamlog_out (DEBUG5) << "Current point (X,Y,Z): " << std::setw(15) << x0  << std::setw(15) << y0 << std::setw(15) << z0 << std::endl;
-	  streamlog_out (DEBUG5) << "Next PlaneID : " << nextPlaneID << std::endl;
-	  streamlog_out (DEBUG5) << "Normal vector" << std::endl;
+		streamlog_out(DEBUG5) << "-------------------------------------------" << std::endl;
+	  streamlog_out(DEBUG5) << "Current point (X,Y,Z): " << std::setw(15) << x0  << std::setw(15) << y0 << std::setw(15) << z0 << std::endl;
+	  streamlog_out(DEBUG5) << "Next PlaneID : " << nextPlaneID << std::endl;
+	  streamlog_out(DEBUG5) << "Normal vector" << std::endl;
 	  norm.Print();
-	  streamlog_out (DEBUG5) << "P x H vector" << std::endl;
+	  streamlog_out(DEBUG5) << "P x H vector" << std::endl;
 	  pVecCrosH.Print();
-	  streamlog_out (DEBUG5) << "Rho: " << rho << std::endl;
-	  streamlog_out (DEBUG5) << "P: " << p << std::endl;
+	  streamlog_out(DEBUG5) << "Rho: " << rho << std::endl;
+	  streamlog_out(DEBUG5) << "P: " << p << std::endl;
   }
 
 
@@ -1234,7 +1240,7 @@ streamlog_out(DEBUG5) << "EUTelGeometryTelescopeGeoDescription::findIntersection
   std::vector< double > sol = Utility::solveQuadratic(a,b,c); // solutions are sorted in ascending order. This is a vector of arc length
 	double solution = ( sol[0] > 0. ) ? sol[0] : ( ( sol[0] < 0. && sol[1] > 0. ) ? sol[1] : -1. ); //choose solution with minimum arc length
 	if(solution < 0){
-		streamlog_out ( DEBUG3 ) << "Track intersection was not found" << std::endl;
+		streamlog_out( DEBUG3 ) << "Track intersection was not found" << std::endl;
 		return -999;
 	}
 			
@@ -1243,8 +1249,8 @@ streamlog_out(DEBUG5) << "EUTelGeometryTelescopeGeoDescription::findIntersection
 	newPos = getXYZfromArcLength(x0, y0,z0,px,py,pz,_beamQ,solution);
 	output[0]=newPos[0]; 				output[1]=newPos[1]; 				output[2]=newPos[2];
 				
-	streamlog_out (DEBUG5) << "Solutions for arc length: " << std::setw(15) << sol[0] << std::setw(15) << sol[1] << std::endl;
-	streamlog_out (DEBUG5) << "Final solution (X,Y,Z): " << std::setw(15) << output[0]  << std::setw(15) << output[1]  << std::setw(15) << output[2] << std::endl;
+	streamlog_out(DEBUG5) << "Solutions for arc length: " << std::setw(15) << sol[0] << std::setw(15) << sol[1] << std::endl;
+	streamlog_out(DEBUG5) << "Final solution (X,Y,Z): " << std::setw(15) << output[0]  << std::setw(15) << output[1]  << std::setw(15) << output[2] << std::endl;
 
         
   streamlog_out(DEBUG2) << "-------------------------EUTelGeometryTelescopeGeoDescription::findIntersection()--------------------------" << std::endl;
@@ -1379,10 +1385,6 @@ TVector3 EUTelGeometryTelescopeGeoDescription::getXYZfromArcLength( float x0, fl
         
 }   
 
-
-    
-
-
 //This function will intake position and direction. Then using the gear file and magnetic field will output position and sensor ID in correct order of intersection. 
 //We need to introduce the idea of:
 //sensitive volume => data and state to be created
@@ -1391,8 +1393,6 @@ TVector3 EUTelGeometryTelescopeGeoDescription::getXYZfromArcLength( float x0, fl
 //At the moment everything in gear file is assumed to be sensitive volume
 
 //std::map<int,double> EUTelGeometryTelescopeGeoDescription::UsingStateReturnAllVolumesIntersected(){}
-
- 
 
 void EUTelGeometryTelescopeGeoDescription::updateSiPlanesLayout() {
  streamlog_out( MESSAGE1 ) << "EUTelGeometryTelescopeGeoDescription::updateSiPlanesLayout() --- START ---- " << std::endl;
