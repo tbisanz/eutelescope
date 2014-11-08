@@ -364,11 +364,11 @@ void EUTelPreAlign::end() {
 	}
     }
     
-    double sensX = _siPlanesLayerLayout->getSensitivePositionX(GEARID);
-    double sensY = _siPlanesLayerLayout->getSensitivePositionY(GEARID);
+    double sensX = _siPlanesLayerLayout->getLayerPositionX(GEARID);
+    double sensY = _siPlanesLayerLayout->getLayerPositionY(GEARID);
   
-    sensX -= _preAligners.at(ii).getPeakX();
-    sensY -= _preAligners.at(ii).getPeakY();
+    sensX += _preAligners.at(ii).getPeakX();
+    sensY += _preAligners.at(ii).getPeakY();
 
     _siPlanesLayerLayout->setLayerPositionX(GEARID, sensX);
     _siPlanesLayerLayout->setLayerPositionY(GEARID, sensY);
