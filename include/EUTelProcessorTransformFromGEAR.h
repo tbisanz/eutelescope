@@ -14,13 +14,6 @@
 // marlin includes ".h"
 #include "marlin/Processor.h"
 
-// lcio includes <.h>
-#include <IMPL/TrackerHitImpl.h>
-
-// gear includes <.h>
-#include <gear/SiPlanesParameters.h>
-#include <gear/SiPlanesLayerLayout.h>
-
 // system includes <>
 #include <string>
 #include <map>
@@ -31,12 +24,6 @@
 
 namespace eutelescope {
 
-struct GEAREntries
-{
-	double r1, r2, r3, r4;
-	double offX, offY, offZ;
-	double alpha, beta, gamma;
-};
 
 class EUTelProcessorTransformFromGEAR: public marlin::Processor
 {
@@ -54,9 +41,8 @@ class EUTelProcessorTransformFromGEAR: public marlin::Processor
 	virtual void end();
 
   private:
-	std::map<int,GEAREntries> _GEAREntriesMap;
-	std::map<int, Eigen::Matrix4d> _flipMatrix;
-	std::map<int, Eigen::Matrix4d> _offsetMatrix;
+	std::map<int, Eigen::Matrix3d> _rotMat;
+	std::map<int, Eigen::Vector3d> _offVec;
 
   protected:
 	std::string _inputHitCollectionName;
@@ -64,9 +50,6 @@ class EUTelProcessorTransformFromGEAR: public marlin::Processor
 	
 	int _iRun;
 	int _iEvt;
-
-	gear::SiPlanesParameters* _siPlanesParameters;
-	gear::SiPlanesLayerLayout* _siPlanesLayerLayout;
 
 	int _initialOutputCollectionSize;
 };

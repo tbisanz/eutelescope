@@ -2,11 +2,11 @@
 #include "EUTelProcessorTransformFromGEAR.h"
 #include "EUTelRunHeaderImpl.h"
 #include "EUTelEventImpl.h"
+#include "EUTelGeometryTelescopeGeoDescription.h"
 
 // marlin includes ".h"
 #include "marlin/Processor.h"
 #include "marlin/Exceptions.h"
-#include "marlin/AIDAProcessor.h"
 
 // lcio includes <.h>
 #include <EVENT/LCCollection.h>
@@ -14,11 +14,6 @@
 #include <IMPL/LCCollectionVec.h>
 #include <UTIL/CellIDDecoder.h>
 #include <UTIL/CellIDEncoder.h>
-
-// gear includes <.h>
-#include "marlin/Global.h"
-#include <gear/GearMgr.h>
-#include <gear/SiPlanesParameters.h>
 
 // system includes <>
 #include <memory>
@@ -46,44 +41,21 @@ void EUTelProcessorTransformFromGEAR::init()
 	// set to zero the run and event counters
 	_iRun = 0;  
 	_iEvt = 0;
+	IntVec sensorVec = geo::gGeometry().sensorIDsVec();
 
-	//get parameters from GEAR
-	_siPlanesParameters  = const_cast<SiPlanesParameters* > (&(Global::GEAR->getSiPlanesParameters()));
-	_siPlanesLayerLayout = const_cast<SiPlanesLayerLayout*> ( &(_siPlanesParameters->getSiPlanesLayerLayout() ));
-
-	for( int iPlane = 0 ; iPlane < _siPlanesLayerLayout->getNLayers(); iPlane++ ) 
+	for( int iPlane = 0 ; iPlane < sensorVec.size(); iPlane++ ) 
 	{
-		GEAREntries entries;
-
-		int sensorID = _siPlanesLayerLayout->getID(iPlane);
+		int sensorID = sensorVec.at(iPlane);
 		
-		entries.offX = _siPlanesLayerLayout->getLayerPositionX(iPlane);
-		entries.offY = _siPlanesLayerLayout->getLayerPositionY(iPlane);
-		entries.offZ = _siPlanesLayerLayout->getLayerPositionZ(iPlane);
+		Eigen::Vector3d offVec = geo::gGeometry().getOffsetVector(sensorID);
+		Eigen::Matrix3d rotMat = geo::gGeometry().rotationMatrixFromAngles(sensorID);
+		Eigen::Matrix3d flipMat = geo::gGeometry().getFlipMatrix(sensorID);
 
-		entries.r1 = _siPlanesLayerLayout->getSensitiveRotation1(iPlane);
-		entries.r2 = _siPlanesLayerLayout->getSensitiveRotation2(iPlane);
-		entries.r3 = _siPlanesLayerLayout->getSensitiveRotation3(iPlane);
-		entries.r4 = _siPlanesLayerLayout->getSensitiveRotation4(iPlane);
+		_rotMat[sensorID] = rotMat*flipMat;
+		_offVec[sensorID] = offVec;
 
-		entries.alpha = _siPlanesLayerLayout->getLayerRotationZY(iPlane);
-		entries.beta = _siPlanesLayerLayout->getLayerRotationZX(iPlane);
-		entries.gamma = _siPlanesLayerLayout->getLayerRotationXY(iPlane);
-	
-		_GEAREntriesMap[sensorID] = entries;
-
-		//Flipping the sensitive area is done via the 2x2 block entries in the upper left corner
-		Eigen::Matrix4d flipMatrix = Eigen::Matrix4d::Identity();
-		flipMatrix.block(0,0,2,2) << entries.r1, entries.r2, entries.r3, entries.r4;
-		_flipMatrix[sensorID] = flipMatrix;
-	
-		//Using 4D rep to do translations
-		Eigen::Matrix4d offsetMatrix = Eigen::Matrix4d::Identity();
-		offsetMatrix.block(0,3,3,1) << entries.offX, entries.offY, entries.offZ;
-		_offsetMatrix[sensorID] = offsetMatrix;
-		//std::cout << offsetMatrix << std::endl;
-		//
-		//TODO: Rotation	
+		std::cout << "Offset Vector for plane: " << sensorID << ": " << std::endl << _offVec[sensorID] << std::endl;
+		std::cout << "Rot*FlipMat for plane: " << sensorID << ": " << std::endl << _rotMat[sensorID] << std::endl;
 	}
 
 }
@@ -143,11 +115,16 @@ void EUTelProcessorTransformFromGEAR::processEvent(LCEvent* event)
 		int sensorID = hitDecoder(inputHit)["sensorID"];
 		const double* hitPos = inputHit->getPosition();
 		
-		double newPos[3];
+		Eigen::Vector3d oldPos;
+		oldPos << hitPos[0], hitPos[1], hitPos[2];
 
-		newPos[0] = hitPos[0] -  _GEAREntriesMap[sensorID].offX; 
-		newPos[1] = hitPos[1] -  _GEAREntriesMap[sensorID].offY; 
-		newPos[2] = hitPos[2]; 
+		Eigen::Vector3d newPos = _rotMat[sensorID]*oldPos+_offVec[sensorID];
+
+		double newPosArray[3];
+
+		newPosArray[0] = newPos(0);
+		newPosArray[1] = newPos(1);
+		newPosArray[2] = newPos(2); 
 
 		//TrackerHitImpl for the output collection
 		auto_ptr<TrackerHitImpl> outputHit ( new TrackerHitImpl );
@@ -159,7 +136,7 @@ void EUTelProcessorTransformFromGEAR::processEvent(LCEvent* event)
 		outputHit->setCovMatrix( inputHit->getCovMatrix() );
 		outputHit->setQuality( inputHit->getQuality() );
 		outputHit->rawHits() =  inputHit->getRawHits();
-		outputHit->setPosition( &newPos[0] );
+		outputHit->setPosition( &newPosArray[0] );
 
 		outputCollectionVec->push_back( outputHit.release() );
 	}
