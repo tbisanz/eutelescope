@@ -650,25 +650,41 @@ Eigen::Matrix3d EUTelGeometryTelescopeGeoDescription::rotationMatrixFromAngles(l
 	//std::cout << "trig" << cosA << ", " << cosB << ", " << cosG << ", " << sinA << ", " << sinB << ", " << sinG <<  std::endl;
 
 	Eigen::Matrix3d rotMat;
-	rotMat <<	(double)(cosB*cosG),	(double)(sinA*sinB*cosG-cosA*sinG),	(double)(cosA*sinB*cosG+sinA*sinG),
-	      		(double)(cosB*sinG),	(double)(sinA*sinB*sinG+cosA*cosG),	(double)(cosA*sinB*sinG-sinA*cosG),
-			(double)(-sinB),	(double)(sinA*cosB),			(double)(cosA*cosB);
+	rotMat <<	(double)(cosB*cosG+sinA*sinB*sinG),	(double)(sinA*sinB*cosG-cosB*sinG),	(double)(cosA*sinB),
+	      		(double)(cosA*sinG),			(double)(cosA*cosG),			(double)(-sinA),
+			(double)(sinA*cosB*sinG-sinB*cosG),	(double)(sinA*cosB*cosG+sinB*sinG),	(double)(cosA*cosB);
 	//std::cout << rotMat.format(IO) << std::endl;
 	return rotMat;
 }
 
 Eigen::Vector3d EUTelGeometryTelescopeGeoDescription::getRotationAnglesFromMatrix(Eigen::Matrix3d rotMat)
 {
-	long double beta = asin((long double)(-rotMat(2,0)));
-	long double cosB = cos(beta);
+	long double alpha = asin((long double)(-rotMat(1,2)));
+	long double cosA = cos(alpha);
 
-	long double gamma = asin((long double)(rotMat(1,0)/cosB));
-	long double alpha = asin((long double)(rotMat(2,1)/cosB));
+	long double beta = asin((long double)(rotMat(0,2)/cosA));
+	long double gamma = asin((long double)(rotMat(1,0)/cosA));
 
 	Eigen::Vector3d vec;
 
 	vec << alpha, beta, gamma;
 	return vec;
+}
+
+Eigen::Vector3d EUTelGeometryTelescopeGeoDescription::getOffsetVector(int sensorID)
+{
+	Eigen::Vector3d offsetVec;
+	offsetVec << siPlaneXPosition(sensorID), siPlaneYPosition(sensorID), siPlaneZPosition(sensorID); 
+	return offsetVec;
+}
+
+Eigen::Matrix3d EUTelGeometryTelescopeGeoDescription::getFlipMatrix(int sensorID)
+{
+	Eigen::Matrix3d flipMat;
+	flipMat << 	siPlaneRotation1(sensorID),	siPlaneRotation2(sensorID),	0,
+			siPlaneRotation3(sensorID), 	siPlaneRotation4(sensorID),	0,
+			0,				0,				1;	
+	return flipMat;
 }
 
 /** Determine id of the sensor in which point is locate
