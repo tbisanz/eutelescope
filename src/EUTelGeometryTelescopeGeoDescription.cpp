@@ -633,6 +633,18 @@ Eigen::Matrix3d EUTelGeometryTelescopeGeoDescription::rotationMatrixFromAngles(i
 	return rotationMatrixFromAngles( (long double)siPlaneXRotationRadians(sensorID), (long double)siPlaneYRotationRadians(sensorID), (long double)siPlaneZRotationRadians(sensorID) );
 }
 
+Eigen::Vector3d EUTelGeometryTelescopeGeoDescription::globalXAxis(int sensorID)
+{
+	Eigen::Vector3d xAxis(1,0,0);
+	return rotationMatrixFromAngles(sensorID)*xAxis;
+}
+
+Eigen::Vector3d EUTelGeometryTelescopeGeoDescription::globalYAxis(int sensorID)
+{
+	Eigen::Vector3d yAxis(0,1,0);
+	return rotationMatrixFromAngles(sensorID)*yAxis;
+}
+
 /** Returns the rotation matrix for given angles
  *  It alpha rotation is around initial X axis, then beta around the new Y' axis
  *  and finally the gamam rotation around the new Z'' axis */

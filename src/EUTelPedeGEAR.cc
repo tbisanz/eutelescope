@@ -16,13 +16,9 @@
 //#include "EUTelCDashMeasurement.h"
 #include "EUTelGeometryTelescopeGeoDescription.h"
 
-
-
 // marlin includes ".h"
-#include "marlin/Processor.h"
 #include "marlin/Global.h"
-#include "marlin/Exceptions.h"
-#include "marlin/AIDAProcessor.h"
+#include "marlin/StringParameters.h"
 
 // gear includes <.h>
 #include <gear/GearMgr.h>
@@ -47,9 +43,8 @@ using namespace eutelescope;
 
 EUTelPedeGEAR::EUTelPedeGEAR () : Processor("EUTelPedeGEAR") {
 
-
   // modify processor description
-  _description = /*TODO:*/ "EUTelPedeGEAR calls PEDE to process a MILLE binary file and create an updated GEAR file with the updated MILLEPEDE II alignment constants.";
+  _description = "EUTelPedeGEAR calls PEDE to process a MILLE binary file and create an updated GEAR file with the updated MILLEPEDE II alignment constants.";
 
   registerOptionalParameter("ExcludePlanes","Exclude planes from fit according to their sensor ids.",_excludePlanes_sensorIDs ,IntVec());
 
@@ -90,20 +85,12 @@ void EUTelPedeGEAR::init()
 	_siPlanesParameters  = const_cast<gear::SiPlanesParameters* > (&(Global::GEAR->getSiPlanesParameters()));
 	_siPlanesLayerLayout = const_cast<gear::SiPlanesLayerLayout*> ( &(_siPlanesParameters->getSiPlanesLayerLayout() ));
 
-	_sensorIDVec.clear();
-	_sensorIDVecMap.clear();
-	_sensorIDtoZOrderMap.clear();
-	_sensorIDVecZOrder.clear();
-
 	//copy-paste from another class (should be ideally part of GEAR!)
 	double* keepZPosition = new double[ _siPlanesLayerLayout->getNLayers() ];
 	for( int iPlane = 0 ; iPlane < _siPlanesLayerLayout->getNLayers(); iPlane++ ) 
 	{
 		int sensorID = _siPlanesLayerLayout->getID( iPlane );
 		keepZPosition[ iPlane ] = _siPlanesLayerLayout->getLayerPositionZ(iPlane);
-
-		_sensorIDVec.push_back( sensorID );
-		_sensorIDVecMap.insert( std::make_pair( sensorID, iPlane ) );
 
 		//count number of the sensors to the left of the current one:
 		int _sensors_to_the_left = 0;
@@ -114,11 +101,8 @@ void EUTelPedeGEAR::init()
 				_sensors_to_the_left++;
 			}
 		}
-
-		_sensorIDVecZOrder.push_back( _sensors_to_the_left );
-		_sensorIDtoZOrderMap.insert(std::make_pair( sensorID, _sensors_to_the_left));
 	}
-   
+
 	delete[] keepZPosition;
 
 	//the number of planes is got from the GEAR description and is
@@ -137,7 +121,6 @@ void EUTelPedeGEAR::init()
 
 	//lets sort the array with increasing z
 	std::sort(_siPlaneZPosition.begin(), _siPlaneZPosition.end());
-
 
 	//the user is giving sensor ids for the planes to be excluded. this
 	//sensor ids have to be converted to a local index according to the
@@ -222,9 +205,9 @@ void EUTelPedeGEAR::processRunHeader(LCRunHeader* rdr)
 	// quitting ask the user what to do.
 
 	if( header->getGeoID() != geo::gGeometry().getSiPlanesLayoutID() ) {
-		streamlog_out ( ERROR2 ) << "Error during the geometry consistency check: " << std::endl;
-		streamlog_out ( ERROR2 ) << "The run header says the GeoID is " << header->getGeoID() << std::endl;
-		streamlog_out ( ERROR2 ) << "The GEAR description says is     " << geo::gGeometry().getSiPlanesLayoutID() << std::endl;
+		streamlog_out( ERROR2 ) << "Error during the geometry consistency check: " << std::endl;
+		streamlog_out( ERROR2 ) << "The run header says the GeoID is " << header->getGeoID() << std::endl;
+		streamlog_out( ERROR2 ) << "The GEAR description says is     " << geo::gGeometry().getSiPlanesLayoutID() << std::endl;
 	}
 
 	// increment the run counter
@@ -233,7 +216,7 @@ void EUTelPedeGEAR::processRunHeader(LCRunHeader* rdr)
 
 
 
-void EUTelPedeGEAR::processEvent (LCEvent * event) {
+void EUTelPedeGEAR::processEvent(LCEvent * event) {
 	/*NOP NOP NOP*/
 }
 
@@ -313,20 +296,17 @@ void EUTelPedeGEAR::end() {
 
 		// pede does not return exit codes on some errors (in V03-04-00)
 		// check for some of those here by parsing the output
-		{
 		const char* pch = strstr(pedeoutput.str().data(),"Too many rejects");
 		if(pch)
 		{
-			streamlog_out ( ERROR5 ) << "Pede stopped due to the large number of rejects. " << std::endl;
+			streamlog_out( ERROR5 ) << "Pede stopped due to the large number of rejects. " << std::endl;
 			encounteredError = true;
 		}
-		}
 	
-		{
 		const char* pch0 = strstr(pedeoutput.str().data(),"Sum(Chi^2)/Sum(Ndf) = ");
 		if(pch0 != 0)
 		{
-			streamlog_out ( DEBUG5 ) << " Parsing pede output for final chi2/ndf result.. " << std::endl;
+			streamlog_out( DEBUG5 ) << " Parsing pede output for final chi2/ndf result.. " << std::endl;
 			//search for the equal sign after which the result for chi2/ndf is stated within the next 80 chars 
 			//(with offset of 22 chars since pch points to beginning of "Sum(..." string just found)
 			char* pch = (char*)((memchr (pch0+22, '=', 180)));
@@ -339,9 +319,8 @@ void EUTelPedeGEAR::end() {
 				str[15] = '\0';   /* null character manually added */
 				//TODO: monitor the chi2/ndf in CDash when running tests
 				//CDashMeasurement meas_chi2ndf("chi2_ndf",atof(str));  cout << meas_chi2ndf; // output only if DO_TESTING is set
-				streamlog_out ( MESSAGE6 ) << "Final Sum(Chi^2)/Sum(Ndf) = " << str << std::endl;
+				streamlog_out( MESSAGE6 ) << "Final Sum(Chi^2)/Sum(Ndf) = " << str << std::endl;
 			}
-		}
 		}
 
 		//wait for the pede execution to finish
@@ -365,8 +344,7 @@ void EUTelPedeGEAR::end() {
 		//reading back the millepede.res file and getting the results.
 		std::string millepedeResFileName = "millepede.res";
 
-		streamlog_out( MESSAGE6 ) 	<< "Reading back the " << millepedeResFileName << std::endl
-						<< "Saving the alignment constant into " << _alignmentConstantLCIOFile << std::endl;
+		streamlog_out( MESSAGE6 ) 	<< "Reading back the " << millepedeResFileName << std::endl;
 
 		//open the millepede ASCII output file
 		ifstream millepede( millepedeResFileName.c_str() );
@@ -374,8 +352,7 @@ void EUTelPedeGEAR::end() {
 
 		if( millepede.bad() || !millepede.is_open() ) 
 		{
-			streamlog_out( ERROR4 )	<< "Error opening the " << millepedeResFileName << std::endl
-						<< "The alignment slcio file cannot be saved" << std::endl;
+			streamlog_out( ERROR4 )	<< "Error opening the " << millepedeResFileName << std::endl;
 		}
 		else 
 		{
@@ -498,11 +475,8 @@ void EUTelPedeGEAR::end() {
 							gamma			= tokens[1];
 							if(!isFixed) gammaErr	= tokens[4];
 						} 
-
 					}
-
 				}
-
 
 				// right place to add the constant to the collection
 				if( goodLine )
@@ -510,7 +484,6 @@ void EUTelPedeGEAR::end() {
 					sensorID = _orderedSensorID.at( counter );
 					std::cout 	<< "Alignment on sensor " << sensorID << " determined to be: xOff: " << xOff << ", yOff: " << yOff << ", zOff: " << zOff << ", alpha: " 
 							<< alpha << ", beta: " << beta << ", gamma: " << gamma << std::endl;
-					counter++;
 
 					//The old rotation matrix is well defined by GEAR file
 					Eigen::Matrix3d rotOld = geo::gGeometry().rotationMatrixFromAngles( sensorID);
@@ -524,13 +497,29 @@ void EUTelPedeGEAR::end() {
 					//std::cout << "Align rotation matrix: " << rotAlign << std::endl; 
 					//std::cout << "Updated coefficients: " << newCoeff*57.29 << std::endl; 
 					std::cout << "This results in the updated rotations (alpha', beta', gamma'): " << newCoeff[0] << ", " << newCoeff[1] << ", " << newCoeff[2] << std::endl;
+					
+					Eigen::Vector3d oldOffset;
+					oldOffset << geo::gGeometry().siPlaneXPosition(sensorID), geo::gGeometry().siPlaneYPosition(sensorID), geo::gGeometry().siPlaneZPosition(sensorID);
+					Eigen::Vector3d newOffset = rotAlign*oldOffset;
+
+					geo::gGeometry().setPlaneXPosition(sensorID, newOffset[0]);
+					geo::gGeometry().setPlaneYPosition(sensorID, newOffset[1]);
+					geo::gGeometry().setPlaneZPosition(sensorID, newOffset[2]);
+					
+					geo::gGeometry().setPlaneXRotationRadians(sensorID,  newCoeff[0]);
+					geo::gGeometry().setPlaneYRotationRadians(sensorID,  newCoeff[1]);
+					geo::gGeometry().setPlaneZRotationRadians(sensorID,  newCoeff[2]);
+
+					counter++;
 				}
 			}
 
 		}
 		millepede.close();
 	}
-
-	streamlog_out ( MESSAGE2 ) << std::endl;
-	streamlog_out ( MESSAGE2 ) << "Successfully finished" << std::endl;
+	marlin::StringParameters* MarlinStringParams = marlin::Global::parameters;
+	std::string outputFilename = (MarlinStringParams->getStringVal("GearXMLFile")).substr(0, (MarlinStringParams->getStringVal("GearXMLFile")).size()-4);
+	std::cout << "GEAR Filename: " << outputFilename+"_aligned.xml" << std::endl;
+	geo::gGeometry().writeGEARFile(outputFilename+"_aligned.xml");
+	streamlog_out( MESSAGE2 ) << std::endl << "Successfully finished" << std::endl;
 }

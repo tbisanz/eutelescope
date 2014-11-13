@@ -259,8 +259,13 @@ namespace eutelescope {
 	    Eigen::Vector3d getRotationAnglesFromMatrix( Eigen::Matrix3d rotMat );
 	    Eigen::Matrix3d rotationMatrixFromAngles(long double alpha, long double beta, long double gamma);
 	    Eigen::Matrix3d rotationMatrixFromAngles(int sensorID);
-            Eigen::Vector3d getOffsetVector(int sensorID);
+
+	    Eigen::Vector3d getOffsetVector(int sensorID);
             Eigen::Matrix3d getFlipMatrix(int sensorID);
+
+	    Eigen::Vector3d globalXAxis(int sensorID);
+      	    Eigen::Vector3d globalYAxis(int sensorID);
+
 	    void writeGEARFile(std::string filename);
         
 	public:
