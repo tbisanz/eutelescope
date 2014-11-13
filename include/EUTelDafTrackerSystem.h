@@ -14,7 +14,7 @@
 #include <cmath>
 #include <iostream>
 
-USING_PART_OF_NAMESPACE_EIGEN
+using namespace Eigen; //USING_PART_OF_NAMESPACE_EIGEN
 
 namespace daffitter{
   class TrackEstimate{
