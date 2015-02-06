@@ -16,7 +16,7 @@ FEI4Staggered::FEI4Staggered(): EUTelGenericPixGeoDescr(	20.00, 16.8, 0.025,		//
 	plane = _tGeoManager->MakeBox( "sensarea_fei4", Si, 10.0, 8.4, 0.0125 );
 	
 	//Prepare the repeating two row structure
-	TGeoVolume* oneDoubleRow = _tGeoManager->MakeBox( "row", Si, 10.05, 0.05, 0.0125 );
+	TGeoVolume* oneDoubleRow = _tGeoManager->MakeBox( "row", Si, 10.0, 0.05, 0.0125 );
 	TGeoVolume* upperRow = _tGeoManager->MakeBox( "uRow", Si, 10.0, 0.025, 0.0125 );	
 	TGeoVolume* lowerRow = _tGeoManager->MakeBox( "lRow", Si, 10.0, 0.025, 0.0125 );
 	TGeoVolume* edgePixle = _tGeoManager->MakeBox( "ePx", Si, 0.375/2, 0.025, 0.0125 );
