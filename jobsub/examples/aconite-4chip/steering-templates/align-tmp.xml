@@ -17,10 +17,9 @@
 
    <execute>
       <processor name="AIDA"/>
-      <processor name="LoadRefHitDB"/>
-      <processor name="LoadPreAlignment"/>
-      <processor name="ApplyPreAlignment"/>
+      <processor name="HitLocalToGlobal"/>
       <processor name="DafFitter"/>
+      <processor name="PedeToGEAR"/>
       <processor name="Align"/>
       <processor name="EUTelUtilityPrintEventNumber"/>
    </execute>
@@ -34,6 +33,25 @@
       <parameter name="Verbosity" value="@Verbosity@"/>
    </global>
 
+ <processor name="PedeToGEAR" type="EUTelPedeGEAR">
+ <!--EUTelPedeGEAR calls PEDE to process a MILLE binary file and create an updated GEAR file with the updated MILLEPEDE II alignment constants.-->
+  <!--Number of alignment constants used. Available mode are: 
+1 - shifts in the X and Y directions and a rotation around the Z axis,
+2 - only shifts in the X and Y directions
+3 - (EXPERIMENTAL) shifts in the X,Y and Z directions and rotations around all three axis-->
+  <parameter name="AlignMode" type="int">3 </parameter>
+  <!--Exclude planes from fit according to their sensor ids.-->
+  <parameter name="ExcludePlanes" type="IntVec">@ExcludePlanes@ </parameter>
+  <!--Fix sensor planes in the fit according to their sensor ids.-->
+  <parameter name="FixedPlanes" type="IntVec">@FixedPlanes@ </parameter>
+  <!--Name of the steering file for the pede program.-->
+  <parameter name="PedeSteerfileName" type="string" value="@DatabasePath@/@FilePrefix@-pede-steer.txt"> </parameter>
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+  <!--Suffix for the new GEAR file, set to empty string (this is not default!) to overwrite old GEAR file-->
+  <parameter name="NewGEARSuffix" type="string">_aligned </parameter>
+</processor>
+
  <processor name="AIDA" type="AIDAProcessor">
  <!--Processor that handles AIDA files. Creates on directory per processor.  Processors only need to create and fill the histograms, clouds and tuples. Needs to be the first ActiveProcessor-->
   <!-- compression of output file 0: false >0: true (default) -->
@@ -46,29 +64,16 @@
   <!--parameter name="Verbosity" type="string" value=""/-->
 </processor>
 
-<processor name="LoadRefHitDB" type="ConditionsProcessor">
-   <parameter name="DBInit" type="string" value="localhost:lccd_test:align:tel"/>
-   <parameter name="SimpleFileHandler" type="StringVec"> refhit  @DatabasePath@/run@RunNumber@-refhit-db.slcio referenceHit  </parameter>
-</processor>
-
-<processor name="LoadPreAlignment" type="ConditionsProcessor">
-   <parameter name="DBInit" type="string" value="localhost:lccd_test:align:tel"/>
-   <parameter name="SimpleFileHandler" type="StringVec"> prealign @DatabasePath@/run@RunNumber@-prealign-db.slcio alignment </parameter>
-</processor>
-
-<processor name="ApplyPreAlignment" type="EUTelApplyAlignmentProcessor">
-    <parameter name="AlignmentConstantName" type="string" lcioInType="LCGenericObject"> prealign </parameter>
-    <!--"alignmentCollectionNames" has to be lowercase! -->
-    <parameter name="alignmentCollectionNames"> prealign </parameter>
-    <parameter name="InputHitCollectionName" type="string" lcioInType="TrackerHit"> hit </parameter>
-    <parameter name="OutputHitCollectionName" type="string" lcioOutType="TrackerHit"> PreAlignedHit </parameter>
-    <parameter name="CorrectionMethod" type="int" value="1"/>
-    <parameter name="ReferenceCollection" type="string" > refhit </parameter>
-    <parameter name="ApplyToReferenceCollection" type="bool" value="1"/>
-    <parameter name="DoAlignCollection" type="bool" value="true"/>
-    <parameter name="HistogramSwitch" type="bool" value="false"/>
-    <parameter name="DEBUG" type="bool" value="false"/>
-    <parameter name="PrintEvents" type="int" value="0"/>
+ <processor name="HitLocalToGlobal" type="EUTelProcessorCoordinateTransformHits">
+ <!--EUTelLocaltoGlobalHitMaker is responsible to change local coordinates to global. This is done using the EUTelGeometryClass-->
+  <!--Set to true to undo the alignment instead-->
+  <!--parameter name="Undo Alignment (boolean)" type="bool">false </parameter-->
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+  <!--Local input hit collection name-->
+  <parameter name="hitCollectionNameInput" type="string" lcioInType="TrackerHit"> local_hit </parameter>
+  <!--Global output hit collection name-->
+  <parameter name="hitCollectionNameOutput" type="string" lcioOutType="TrackerHit"> hit </parameter>
 </processor>
 
  <processor name="DafFitter" type="EUTelDafFitter">
@@ -78,7 +83,7 @@
   <!--Should plots be made and filled?-->
   <!--parameter name="AddToLCIO" type="bool" value="true"/-->
   <!--Names of alignment collections, should be in same order as application-->
-  <parameter name="AlignmentCollectionNames" type="StringVec" value="prealign"/>
+  <parameter name="AlignmentCollectionNames" type="StringVec" value=""/>
   <!--DAF fitter: The cutoff value for a measurement to be included in the fit.-->
   <parameter name="Chi2Cutoff" type="float" value="1000"/>
   <!--List of sensor IDs for the DUT planes. Used to make the decision on whether ro accept the track or not. These planes are not used in track finder, and not in the track fitter unless option 'useDutsInFit' is set.-->
@@ -94,7 +99,7 @@
   <!--Set this to true if you want DUTs to be included in the track fit-->
   <parameter name="FitDuts" type="bool" value="false"/>
   <!--Names of input hit collections-->
-  <parameter name="HitCollectionName" type="StringVec" value="PreAlignedHit"/>
+  <parameter name="HitCollectionName" type="StringVec" value="hit"/>
   <!--Should plots be made and filled?-->
   <parameter name="MakePlots" type="bool" value="true"/>
   <!--Maximum allowed global chi2/ndof-->
@@ -108,7 +113,7 @@
   <!--Radiation lengths of planes.-->
   <!--parameter name="RadiationLengths" type="FloatVec"> </parameter-->
   <!--reference hit collection name -->
-  <parameter name="ReferenceCollection" type="string" value="refhit"/>
+  <parameter name="ReferenceCollection" type="string" value=""/>
   <!--How many telescope planes do we require to be included in the fit?-->
   <parameter name="RequireNTelPlanes" type="float" value="6"/>
   <!--Scale thickness of DUT planes-->
@@ -122,9 +127,9 @@
   <!--Filename for fitted tracks-->
   <!--parameter name="TrackAsciiName" type="string" value="tracks.txt"/-->
   <!--Do you want the reference hit collection to be used for coordinate transformations?-->
-  <!--parameter name="UseReferenceCollection" type="bool" value="true"/-->
+  <parameter name="UseReferenceCollection" type="bool" value="false"/>
   <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
-  <!--parameter name="Verbosity" type="string" value=""/-->
+  <parameter name="Verbosity" type="string" value="MESSAGE4"/>
   <!--List of hit collections. First one is INPUT collection, every subsequent corresponds to applying alignment collection-->
   <parameter name="mccollections" type="StringVec"> </parameter>
 </processor>
@@ -132,7 +137,7 @@
  <processor name="Align" type="EUTelMille">
  <!--EUTelMille uses the MILLE program to write data files for MILLEPEDE II.-->
   <!--Hit collections name-->
-  <parameter name="HitCollectionName" type="string" lcioInType="TrackerHit"> PreAlignedHit </parameter>
+  <parameter name="HitCollectionName" type="string" lcioInType="TrackerHit"> hit </parameter>
   <!--Track collection name. This is only relevant if InputMode is set to larger to 1-->
   <parameter name="TrackCollectionName" type="string" lcioInType="Track"> tracks </parameter>
   <!--Number of alignment constants used. Available mode are: 
@@ -211,7 +216,7 @@
   <!--Z resolution parameter for each plane. Note: these numbers are ordered according to the z position of the sensors and NOT according to the sensor id.-->
   <parameter name="ResolutionZ" type="FloatVec"> 1000 1000 1000 1000 1000 1000 1000 1000 </parameter>
   <!--Execute the pede program using the generated steering file.-->
-  <parameter name="RunPede" type="bool" value="@RunPede@"/>
+  <parameter name="RunPede" type="bool" value="false"/>
   <!--(default) Resolution of the telescope for Millepede (sigma_x=sigma_y) used only if plane dependent resolution is set inconsistently.-->
   <parameter name="TelescopeResolution" type="float" value="10"/>
   <!--Rotation around the x axis of the sensors in test mode (to be determined by the alignment).-->
@@ -235,7 +240,7 @@
   <!--Give start values for pede by hand (0 - automatic calculation of start values, 1 - start values defined by user).-->
   <!--parameter name="UsePedeUserStartValues" type="int" value="0"/-->
   <!--Do you want the reference hit collection to be used for coordinate transformations?-->
-  <!--parameter name="UseReferenceCollection" type="bool" value="true"/-->
+  <parameter name="UseReferenceCollection" type="bool" value="false"/>
   <!--Use cuts on the residuals to reduce the combinatorial background.-->
   <parameter name="UseResidualCuts" type="bool" value="@UseResidualCuts@"/>
   <!--Do not use all pixels for alignment, only these in the rectangular (A|B) e.g. (0,0) and (C|D) e.g. (100|100) of sensor S. Type in the way S1 A1 B1 C1 D1 S2 A2 B2 C2 D2 ...-->

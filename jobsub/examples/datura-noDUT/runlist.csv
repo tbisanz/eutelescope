@@ -61,7 +61,7 @@ RunNumber,BeamEnergy,Threshold,GearGeoFile
 94,4.4,9.0,gear_desy2012_150mm.xml
 95,4.4,9.0,gear_desy2012_150mm.xml
 96,4.4,8.0,gear_desy2012_150mm.xml
-97,4.4,7.0,gear_desy2012_150mm.xml
+97,4.4,7.0,gear_desy2012_150mm_pre_aligned.xml
 98,4.4,6.0,gear_desy2012_150mm.xml
 99,4.4,5.0,gear_desy2012_150mm.xml
 100,4.4,5.0,gear_desy2012_150mm.xml
