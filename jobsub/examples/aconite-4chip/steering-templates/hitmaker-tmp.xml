@@ -81,9 +81,11 @@
  <processor name="PreAligner" type="EUTelPreAlign">
  <!--Apply alignment constants to hit collection-->
   <!--Name of LCIO db file where alignment constantds will be stored-->
-  <parameter name="AlignmentConstantLCIOFile" type="string"> @DatabasePath@/run@RunNumber@-prealign-db.slcio </parameter>
+  <parameter name="AlignmentConstantLCIOFile" type="string">  </parameter>
   <!--How many events should be used for an approximation to the X,Y shifts (pre-alignment)? (default=50000)-->
   <parameter name="Events" type="int"> @NoEvents@ </parameter>
+  <!--Dump alignment into GEAR file instead of prealignment database-->
+  <parameter name="DumpGEAR" type="bool"> true </parameter>
   <!--SensorID of fixed plane-->
   <!--parameter name="FixedPlane" type="int">0 </parameter-->
   <!--Switch on or off the histogram filling-->
@@ -95,7 +97,7 @@
   <!--If there are more then this number of correlated hits (planes->track candidate) (default=5)-->
   <!--parameter name="MinNumberOfCorrelatedHits" type="int">5 </parameter-->
   <!--reference hit collection name -->
-  <parameter name="ReferenceCollection" type="string">referenceHit </parameter>
+  <parameter name="ReferenceCollection" type="string"> </parameter>
   <!--Maximal values of the hit residuals in the X direction for a correlation band. Note: these numbers are ordered according to the z position of the sensors and NOT according to the sensor id.-->
   <parameter name="ResidualsXMax" type="FloatVec"> @ResidualsXMax@ </parameter>
   <!--Minimal values of the hit residuals in the X direction for a correlation band. Note: these numbers are ordered according to the z position of the sensors and NOT according to the sensor id.-->
