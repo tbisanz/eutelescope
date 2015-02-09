@@ -141,7 +141,7 @@
   <!--Path/File where root-file should be stored-->
   <parameter name="OutputPath" type="string">NTuple.root </parameter>
   <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
-  <parameter name="DUTIDs" type="IntVec" value="20" />
+  <parameter name="DUTIDs" type="IntVec" value="20 21" />
   <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
 </processor>
 
