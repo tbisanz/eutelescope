@@ -422,7 +422,6 @@ void EUTelMille2::init() {
   _waferResidY = new double[_nPlanes];
   _waferResidZ = new double[_nPlanes];
   
-  
   _xFitPos = new double[_nPlanes];
   _yFitPos = new double[_nPlanes];
 
@@ -484,7 +483,6 @@ void EUTelMille2::init() {
 
   if(_alignMode == 3)
     {
-//       number_of_datapoints = _nPlanes -_nExcludePlanes;
       number_of_datapoints2 = _nPlanes;
       hitsarray2 = new hit[number_of_datapoints2];
     }
@@ -1532,183 +1530,7 @@ void EUTelMille2::processEvent (LCEvent * event) {
         // Add track to Millepede
         // ---------------------------
 
-        // Easy case: consider only shifts
-        if (_alignMode == 2) {
-
-          const int nLC = 4; // number of local parameters
-          const int nGL = (_nPlanes - _nExcludePlanes) * 2; // number of global parameters
-
-          float sigma = _telescopeResolution;
-
-          float *derLC = new float[nLC]; // array of derivatives for local parameters
-          float *derGL = new float[nGL]; // array of derivatives for global parameters
-
-          int *label = new int[nGL]; // array of labels
-
-          float residual;
-
-          // create labels
-          for (int help = 0; help < nGL; help++) {
-            label[help] = help + 1;
-          }
-
-          for (int help = 0; help < nGL; help++) {
-            derGL[help] = 0;
-          }
-
-          for (int help = 0; help < nLC; help++) {
-            derLC[help] = 0;
-          }
-
-          int nExcluded = 0;
-
-          // loop over all planes
-          for (unsigned int help = 0; help < _nPlanes; help++) {
-
-            int excluded = 0;
-
-            // check if actual plane is excluded
-            if (_nExcludePlanes > 0) {
-              for (int helphelp = 0; helphelp < _nExcludePlanes; helphelp++) {
-                if (help == _excludePlanes[helphelp]) {
-                  excluded = 1;
-                  nExcluded++;
-                }
-              }
-            }
-
-            // if plane is not excluded
-            if (excluded == 0) {
-
-              int helphelp = help - nExcluded; // index of plane after
-                                               // excluded planes have
-                                               // been removed
-
-              derGL[((helphelp * 2) + 0)] = -1;
-              derLC[0] = 1;
-              derLC[2] = _zPosHere[help];
-              residual = _waferResidX[help];
-              sigma    = _resolutionX[help];
-              _mille->mille(nLC,derLC,nGL,derGL,label,residual,sigma);
-
-              derGL[((helphelp * 2) + 0)] = 0;
-              derLC[0] = 0;
-              derLC[2] = 0;
-
-              derGL[((helphelp * 2) + 1)] = -1;
-              derLC[1] = 1;
-              derLC[3] = _zPosHere[help];
-              residual = _waferResidY[help];
-              sigma    = _resolutionY[help];
-              _mille->mille(nLC,derLC,nGL,derGL,label,residual,sigma);
-
-              derGL[((helphelp * 2) + 1)] = 0;
-              derLC[1] = 0;
-              derLC[3] = 0;
-
-              _nMilleDataPoints++;
-
-            } // end if plane is not excluded
-
-          } // end loop over all planes
-
-          // clean up
-
-          delete [] derLC;
-          delete [] derGL;
-          delete [] label;
-
-          // Slightly more complicated: add rotation around the z axis
-        } else if (_alignMode == 1) {
-
-          const int nLC = 4; // number of local parameters
-          const int nGL = _nPlanes * 3; // number of global parameters
-
-          float sigma = _telescopeResolution;
-
-          float *derLC = new float[nLC]; // array of derivatives for local parameters
-          float *derGL = new float[nGL]; // array of derivatives for global parameters
-
-          int *label = new int[nGL]; // array of labels
-
-          float residual;
-
-          // create labels
-          for (int help = 0; help < nGL; help++) {
-            label[help] = help + 1;
-          }
-
-          for (int help = 0; help < nGL; help++) {
-            derGL[help] = 0;
-          }
-
-          for (int help = 0; help < nLC; help++) {
-            derLC[help] = 0;
-          }
-
-          int nExcluded = 0;
-
-          // loop over all planes
-          for (unsigned int help = 0; help < _nPlanes; help++) {
-
-            int excluded = 0;
-
-            // check if actual plane is excluded
-            if (_nExcludePlanes > 0) {
-              for (int helphelp = 0; helphelp < _nExcludePlanes; helphelp++) {
-                if (help == _excludePlanes[helphelp]) {
-                  excluded = 1;
-                  nExcluded++;
-                }
-              }
-            }
-
-            // if plane is not excluded
-            if (excluded == 0) {
-
-              int helphelp = help - nExcluded; // index of plane after
-                                               // excluded planes have
-                                               // been removed
-
-              derGL[((helphelp * 3) + 0)] = -1;
-              derGL[((helphelp * 3) + 2)] = _yPosHere[help];
-              derLC[0] = 1;
-              derLC[2] = _zPosHere[help];
-              residual = _waferResidX[help];
-              sigma    = _resolutionX[help];
-              _mille->mille(nLC,derLC,nGL,derGL,label,residual,sigma);
-
-              derGL[((helphelp * 3) + 0)] = 0;
-              derGL[((helphelp * 3) + 2)] = 0;
-              derLC[0] = 0;
-              derLC[2] = 0;
-
-              derGL[((helphelp * 3) + 1)] = -1;
-              derGL[((helphelp * 3) + 2)] = -1 * _xPosHere[help];
-              derLC[1] = 1;
-              derLC[3] = _zPosHere[help];
-              residual = _waferResidY[help];
-              sigma    = _resolutionY[help];
-              _mille->mille(nLC,derLC,nGL,derGL,label,residual,sigma);
-
-              derGL[((helphelp * 3) + 1)] = 0;
-              derGL[((helphelp * 3) + 2)] = 0;
-              derLC[1] = 0;
-              derLC[3] = 0;
-
-              _nMilleDataPoints++;
-
-            } // end if plane is not excluded
-
-          } // end loop over all planes
-
-          // clean up
-
-          delete [] derLC;
-          delete [] derGL;
-          delete [] label;
-
-        } else if (_alignMode == 3) {
+	if (_alignMode == 3) {
           if(validminuittrack || _inputMode == 1 )
             {
               const int nLC = 4; // number of local parameters
@@ -2218,14 +2040,7 @@ void EUTelMille2::end() {
           
           if( fixed || (_FixedPlanes.empty() && (help == firstnotexcl || help == lastnotexcl) ) )
             {
-              if (_alignMode == 1) {
-                steerFile << (counter * 3 + 1) << " 0.0 -1.0" << endl;
-                steerFile << (counter * 3 + 2) << " 0.0 -1.0" << endl;
-                steerFile << (counter * 3 + 3) << " 0.0 -1.0" << endl;
-              } else if (_alignMode == 2) {
-                steerFile << (counter * 2 + 1) << " 0.0 -1.0" << endl;
-                steerFile << (counter * 2 + 2) << " 0.0 -1.0" << endl;
-              } else if (_alignMode == 3) {
+		 if (_alignMode == 3) {
                 steerFile << (counter * 6 + 1) << " 0.0 -1.0" << endl;
                 steerFile << (counter * 6 + 2) << " 0.0 -1.0" << endl;
                 steerFile << (counter * 6 + 3) << " 0.0 -1.0" << endl;
@@ -2236,29 +2051,7 @@ void EUTelMille2::end() {
               
             } else {
             
-            if (_alignMode == 1) {
-
-              if (_usePedeUserStartValues == 0) {
-                steerFile << (counter * 3 + 1) << " " << (averageX - meanX[help]) << " 0.0" << endl;
-                steerFile << (counter * 3 + 2) << " " << (averageY - meanY[help]) << " 0.0" << endl;
-                steerFile << (counter * 3 + 3) << " " << " 0.0 0.0" << endl;
-              } else {
-                steerFile << (counter * 3 + 1) << " " << _pedeUserStartValuesX[help] << " 0.0" << endl;
-                steerFile << (counter * 3 + 2) << " " << _pedeUserStartValuesY[help] << " 0.0" << endl;
-                steerFile << (counter * 3 + 3) << " " << _pedeUserStartValuesGamma[help] << " 0.0" << endl;
-              }
-
-            } else if (_alignMode == 2) {
-
-              if (_usePedeUserStartValues == 0) {
-                steerFile << (counter * 2 + 1) << " " << (averageX - meanX[help]) << " 0.0" << endl;
-                steerFile << (counter * 2 + 2) << " " << (averageY - meanY[help]) << " 0.0" << endl;
-              } else {
-                steerFile << (counter * 2 + 1) << " " << _pedeUserStartValuesX[help] << " 0.0" << endl;
-                steerFile << (counter * 2 + 2) << " " << _pedeUserStartValuesY[help] << " 0.0" << endl;
-              }
-
-            } else if (_alignMode == 3) {
+		 if (_alignMode == 3) {
               if (_usePedeUserStartValues == 0)
                 {
                   if(_FixParameter[help] & (1 << 0))
@@ -2541,9 +2334,6 @@ void EUTelMille2::end() {
 
             bool goodLine = true;
             unsigned int numpars = 0;
-            if(_alignMode != 3)
-              numpars = 3;
-            else
               numpars = 6;
 
             for ( unsigned int iParam = 0 ; iParam < numpars ; ++iParam ) 
@@ -2570,23 +2360,7 @@ void EUTelMille2::end() {
               } else goodLine = false;
 
               bool isFixed = ( tokens.size() == 3 );
-              if(_alignMode != 3)
-                {
-                 if ( iParam == 0 ) {
-                    constant->setXOffset( tokens[1] / 1000. );
-                    if ( ! isFixed ) constant->setXOffsetError( tokens[4] / 1000. ) ;
-                  }
-                  if ( iParam == 1 ) {
-                    constant->setYOffset( tokens[1] / 1000. ) ;
-                    if ( ! isFixed ) constant->setYOffsetError( tokens[4] / 1000. ) ;
-                  }
-                  if ( iParam == 2 ) {
-                    constant->setGamma( tokens[1]  ) ;
-                    if ( ! isFixed ) constant->setGammaError( tokens[4] ) ;
-                  }
-                }
-              else
-                {
+
                  if ( iParam == 0 ) {
                     constant->setXOffset( tokens[1] / 1000. );
                     if ( ! isFixed ) constant->setXOffsetError( tokens[4] / 1000. ) ;                    
@@ -2611,11 +2385,7 @@ void EUTelMille2::end() {
                     constant->setGamma( tokens[1]  ) ;
                     if ( ! isFixed ) constant->setGammaError( tokens[4] ) ;
                   } 
-
-                }
-              
             }
-
 
             // right place to add the constant to the collection
             if ( goodLine  ) {
