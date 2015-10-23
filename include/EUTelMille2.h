@@ -317,30 +317,11 @@ namespace eutelescope {
      */
     IntVec _orderedSensorID;
     IntVec _orderedSensorID_wo_excluded;
-
-
-    //! reference HitCollection name 
-    /*!
-     */
-    std::string      _referenceHitCollectionName;
-    bool             _useReferenceHitCollection;
-    LCCollectionVec* _referenceHitVec;    
  
-    //! TrackerHit collection name
-    /*! Input collection with hits.
-     */
-    StringVec _hitCollectionName;
-
     //! TRACK collection name
     /*! Output collection with fitted tracks.
      */
     std::string _trackCollectionName;
-
-    //! Hot pixel collection name.
-    /*! 
-     * this collection is saved in a db file to be used at the clustering level
-     */
-    std::string _hotPixelCollectionName;
 
     //! Vector of map arrays, keeps record of hit pixels 
     /*! The vector elements are sorted by Detector ID
@@ -379,8 +360,6 @@ namespace eutelescope {
     std::string _binaryFilename;
 
     float _telescopeResolution;
-    bool _onlySingleHitEvents;
-    bool _onlySingleTrackEvents;
     int _alignMode;
     bool _useResidualCuts;
 
@@ -412,22 +391,8 @@ namespace eutelescope {
     int _allowedMissingHits;
     int _mimosa26ClusterChargeMin;
 
-    float _testModeSensorResolution;
-    float _testModeXTrackSlope;
-    float _testModeYTrackSlope;
-
-    FloatVec _testModeSensorZPositions;
-
-    FloatVec _testModeSensorXShifts;
-    FloatVec _testModeSensorYShifts;
-    FloatVec _testModeSensorGamma;
-    FloatVec _testModeSensorAlpha;
-    FloatVec _testModeSensorBeta;
-
     std::string _alignmentConstantLCIOFile;
     std::string _alignmentConstantCollectionName;
-
-    IntVec _useSensorRectangular;
 
   private:
 

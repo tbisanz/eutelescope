@@ -114,12 +114,7 @@ std::string EUTelMille2::_residualYvsXLocalname      = "ResidualYvsX";
 std::string EUTelMille2::_residualYvsYLocalname      = "ResidualYvsY";
 std::string EUTelMille2::_residualZvsXLocalname      = "ResidualZvsX";
 std::string EUTelMille2::_residualZvsYLocalname      = "ResidualZvsY";
-
-
 #endif
-
-
-
 
 EUTelMille2::EUTelMille2 () : Processor("EUTelMille2") {
 
@@ -194,14 +189,9 @@ EUTelMille2::EUTelMille2 () : Processor("EUTelMille2") {
   std::vector<std::string > HitCollectionNameVecExample;
   HitCollectionNameVecExample.push_back("corrhits");
 
-  registerInputCollections(LCIO::TRACKERHIT,"HitCollectionName",
-                           "Hit collections name",
-                           _hitCollectionName,HitCollectionNameVecExample);
-
   registerInputCollection(LCIO::TRACK,"TrackCollectionName",
                           "Track collection name. This is only relevant if InputMode is set to larger to 1",
                           _trackCollectionName,std::string("fittracks"));
-
   // parameters
 
   registerOptionalParameter("DistanceMax","Maximal allowed distance between hits entering the fit per 10 cm space between the planes.",
@@ -210,23 +200,17 @@ EUTelMille2::EUTelMille2 () : Processor("EUTelMille2") {
   registerOptionalParameter("DistanceMaxVec","Maximal allowed distance between hits entering the fit per 10 cm space between the planes. One value for each neighbor planes. DistanceMax will be used for each pair if this vector is empty.",
                             _distanceMaxVec, FloatVec ());
 
-  
-
   registerOptionalParameter("ExcludePlanes","Exclude planes from fit according to their sensor ids.",_excludePlanes_sensorIDs ,IntVec());
 
   registerOptionalParameter("FixedPlanes","Fix sensor planes in the fit according to their sensor ids.",_FixedPlanes_sensorIDs ,IntVec());
 
-
   registerOptionalParameter("MaxTrackCandidatesTotal","Stop processor after this maximum number of track candidates (Total) is reached.",_maxTrackCandidatesTotal, static_cast <int> (10000000));
+  
   registerOptionalParameter("MaxTrackCandidates","Maximal number of track candidates in a event.",_maxTrackCandidates, static_cast <int> (2000));
 
   registerOptionalParameter("BinaryFilename","Name of the Millepede binary file.",_binaryFilename, string ("mille.bin"));
 
   registerOptionalParameter("TelescopeResolution","(default) Resolution of the telescope for Millepede (sigma_x=sigma_y) used only if plane dependent resolution is set inconsistently.",_telescopeResolution, static_cast <float> (3.0));
-
-  registerOptionalParameter("OnlySingleHitEvents","Use only events with one hit in every plane.",_onlySingleHitEvents, static_cast <bool> (false));
-
-  registerOptionalParameter("OnlySingleTrackEvents","Use only events with one track candidate.",_onlySingleTrackEvents, static_cast <bool> (false));
 
   registerOptionalParameter("AlignMode","Number of alignment constants used. Available mode are: "
                             "\n1 - shifts in the X and Y directions and a rotation around the Z axis,"
@@ -251,17 +235,11 @@ EUTelMille2::EUTelMille2 () : Processor("EUTelMille2") {
 
   registerOptionalParameter("ResidualsYMax","Maximal values of the hit residuals in the Y direction for a track. Note: these numbers are ordered according to the z position of the sensors and NOT according to the sensor id.",_residualsYMax,MaximalResidualsY);
 
-
-
   registerOptionalParameter("ResolutionX","X resolution parameter for each plane. Note: these numbers are ordered according to the z position of the sensors and NOT according to the sensor id.",_resolutionX,  FloatVec (static_cast <int> (6), 10.));
 
   registerOptionalParameter("ResolutionY","Y resolution parameter for each plane. Note: these numbers are ordered according to the z position of the sensors and NOT according to the sensor id.",_resolutionY,FloatVec (static_cast <int> (6), 10.));
 
   registerOptionalParameter("ResolutionZ","Z resolution parameter for each plane. Note: these numbers are ordered according to the z position of the sensors and NOT according to the sensor id.",_resolutionZ,FloatVec (static_cast <int> (6), 10.));
-
-  registerOptionalParameter("ReferenceCollection","reference hit collection name ", _referenceHitCollectionName, static_cast <string> ("referenceHit") );
- 
-  registerOptionalParameter("UseReferenceCollection","Do you want the reference hit collection to be used for coordinate transformations?",  _useReferenceHitCollection, static_cast< bool   > ( true ));
 
   registerOptionalParameter("FixParameter","Fixes the given alignment parameters in the fit if alignMode==3 is used. For each sensor an integer must be specified (If no value is given, then all parameters will be free). bit 0 = x shift, bit 1 = y shift, bit 2 = z shift, bit 3 = alpha, bit 4 = beta, bit 5 = gamma. Note: these numbers are ordered according to the z position of the sensors and NOT according to the sensor id.",_FixParameter, IntVec (static_cast <int> (6), 24));
 
@@ -287,39 +265,6 @@ EUTelMille2::EUTelMille2 () : Processor("EUTelMille2") {
   
   registerOptionalParameter("PedeUserStartValuesGamma","Start values for the alignment for the angle gamma.",_pedeUserStartValuesGamma,PedeUserStartValuesGamma);
 
-  registerOptionalParameter("TestModeSensorResolution","Resolution assumed for the sensors in test mode.",_testModeSensorResolution, static_cast <float> (3.0));
-
-  registerOptionalParameter("TestModeXTrackSlope","Width of the track slope distribution in the x direction",_testModeXTrackSlope, static_cast <float> (0.0005));
-
-  registerOptionalParameter("TestModeYTrackSlope","Width of the track slope distribution in the y direction",_testModeYTrackSlope, static_cast <float> (0.0005));
-
-  registerOptionalParameter("TestModeSensorZPositions","Z positions of the sensors in test mode.",_testModeSensorZPositions,SensorZPositions);
-
-  registerOptionalParameter("TestModeSensorXShifts","X shifts of the sensors in test mode (to be determined by the alignment).",
-                            _testModeSensorXShifts,SensorXShifts);
-
-  registerOptionalParameter("TestModeSensorYShifts","Y shifts of the sensors in test mode (to be determined by the alignment).",
-                            _testModeSensorYShifts,SensorYShifts);
-
-
-  registerOptionalParameter("TestModeSensorGamma","Rotation around the z axis of the sensors in test mode (to be determined by the alignment).",
-                            _testModeSensorGamma,SensorGamma);
-
-
-  registerOptionalParameter("TestModeSensorAlpha","Rotation around the x axis of the sensors in test mode (to be determined by the alignment).",
-                            _testModeSensorAlpha,SensorAlpha);
-
-
-  registerOptionalParameter("TestModeSensorBeta","Rotation around the y axis of the sensors in test mode (to be determined by the alignment).",
-                            _testModeSensorBeta,SensorBeta);
-
-  IntVec initRect;
-  registerOptionalParameter("UseSensorRectangular","Do not use all pixels for alignment, only these in the rectangular (A|B) e.g. (0,0) and (C|D) e.g. (100|100) of sensor S. Type in the way S1 A1 B1 C1 D1 S2 A2 B2 C2 D2 ...",
-                            _useSensorRectangular,initRect);
-
-  registerOptionalParameter("HotPixelCollectionName", "This is the name of the hot pixel collection to be saved into the output slcio file",
-                             _hotPixelCollectionName, static_cast< string > ( "" ));
-
 }
 
 void EUTelMille2::init() {
@@ -330,7 +275,6 @@ void EUTelMille2::init() {
 
   _sensorIDVec.clear();
   _sensorIDVecMap.clear();
-	//TODO: get this directly
 
   // an associative map for getting also the sensorID ordered
   map< double, int > sensorIDMap;
@@ -344,8 +288,6 @@ void EUTelMille2::init() {
    }
      
   _histogramSwitch = true;
-  _referenceHitVec = NULL;
-  
   _nPlanes = geo::gGeometry().nPlanes();
 
   //the user is giving sensor ids for the planes to be excluded. this
@@ -571,41 +513,36 @@ void  EUTelMille2::findMatchedHits(int& _ntrack, Track* TrackHere) {
       // setup cellIdDecoder to decode the hit properties
       CellIDDecoder<TrackerHit>  hitCellDecoder(EUTELESCOPE::HITENCODING);
 
-
-
-      std::vector <TrackerHit* > hit;
-      std::vector <TrackerHit* > fit;
+      std::vector<TrackerHit*> hit;
+      std::vector<TrackerHit*> fit;
 
       // loop over all hits and fill arrays
-      for (int nHits = 0; nHits < int(TrackHitsHere.size()); nHits++) {
+      for(auto hitHere: TrackHitsHere) {
 
-          TrackerHit *HitHere = TrackHitsHere.at(nHits);
-          int sensorID = Utility::getSensorIDfromHit ( HitHere ) ;
-
+          //TrackerHit *HitHere = TrackHitsHere.at(nHits);
+          int sensorID = Utility::getSensorIDfromHit ( hitHere ) ;
           // check if this is a measured hit or a fitted hit, want measured hit
-          streamlog_out( MESSAGE0 ) << "hit on plane [" << sensorID << "] properties : " << ( hitCellDecoder(HitHere)["properties"] & kFittedHit ) << std::endl;
+          streamlog_out( MESSAGE0 ) << "hit on plane [" << sensorID << "] properties : " << ( hitCellDecoder(hitHere)["properties"] & kFittedHit ) << std::endl;
 
-          if ( ((hitCellDecoder(HitHere)["properties"] & kFittedHit) >> 1) == 0 ){  hit.push_back(HitHere); }
-
-          if ( ((hitCellDecoder(HitHere)["properties"] & kFittedHit) >> 1) == 1 ){  fit.push_back(HitHere); }
-
+          if ( ((hitCellDecoder(hitHere)["properties"] & kFittedHit) >> 1) == 0 ){  hit.push_back(hitHere); }
+          if ( ((hitCellDecoder(hitHere)["properties"] & kFittedHit) >> 1) == 1 ){  fit.push_back(hitHere); }
       }
 
       nPlaneHere = 0;
 
-      for( std::vector<TrackerHit*>::iterator ihit = hit.begin(); ihit!= hit.end(); ihit++){
-         int hitID = Utility::getSensorIDfromHit ( (*ihit) );
+      for( auto thisHit: hit){
+         int hitID = Utility::getSensorIDfromHit( thisHit );
 
          streamlog_out ( MESSAGE1 ) << "hit: @ " << hitID << " " << std::endl;
 
-         for( std::vector<TrackerHit*>::iterator ifit = fit.begin(); ifit!= fit.end(); ifit++){
-             int fitID = Utility::getSensorIDfromHit ( (*ifit) );          
+         for( auto fitHit: fit ){
+             int fitID = Utility::getSensorIDfromHit ( fitHit );          
              streamlog_out ( MESSAGE1 ) << "fit: @ " << fitID << " " << std::endl;
              if( fitID != hitID ) continue;
 
              // hit positions
-             const double *hitPosition = (*ihit)->getPosition();
-             const double *fitPosition = (*ifit)->getPosition();
+             const double *hitPosition = thisHit->getPosition();
+             const double *fitPosition = fitHit->getPosition();
 
              // fill hits to arrays
             _xPos[_ntrack][nPlaneHere] = hitPosition[0] * 1000.;
@@ -619,7 +556,7 @@ void  EUTelMille2::findMatchedHits(int& _ntrack, Track* TrackHere) {
             streamlog_out ( MESSAGE1 ) << "hit: @ " << hitID << " " 
                           << _xPos[_ntrack][nPlaneHere] << " " 
                           << _yPos[_ntrack][nPlaneHere] << " " 
-                          << _zPos[_ntrack][nPlaneHere] << " type: " << (*ihit)->getType() ;
+                          << _zPos[_ntrack][nPlaneHere] << " type: " << thisHit->getType() ;
 
             streamlog_out ( MESSAGE1 ) << "res " 
                          << _trackResidX[_ntrack][nPlaneHere] << " " 
@@ -627,50 +564,34 @@ void  EUTelMille2::findMatchedHits(int& _ntrack, Track* TrackHere) {
                          << _trackResidZ[_ntrack][nPlaneHere] ;
             streamlog_out ( MESSAGE1 ) << endl;
 
-
             nPlaneHere++;
-             
-
          }
       }
-
       _ntrack++;
-
 }
 
 void EUTelMille2::processEvent (LCEvent * event) {
 
   CellIDDecoder<TrackerHit>  hitDecoder(EUTELESCOPE::HITENCODING);
 
-  if ( _useReferenceHitCollection ){
-    try {
-    _referenceHitVec = dynamic_cast < LCCollectionVec * > (event->getCollection( _referenceHitCollectionName));
-    }
-    catch (...){
-      streamlog_out ( ERROR5 ) <<  "Reference Hit Collection " << _referenceHitCollectionName.c_str() << " could not be retrieved for event " << event->getEventNumber()<< "! Please check your steering files! " << endl;
-    }
-  }
-  
-  if (_iEvt % 1000 == 0) 
-  {
+  if (_iEvt % 1000 == 0) {
     streamlog_out( MESSAGE5 ) << "Currently having " << _nMilleDataPoints << " data points in "
                               << _nMilleTracks << " tracks " << endl;
   }
   
-  if( _nMilleTracks > _maxTrackCandidatesTotal )
-  {
+  if( _nMilleTracks > _maxTrackCandidatesTotal ) {
 	return; //throw StopProcessingException(this);
   }
   
   // fill resolution arrays
-  for (size_t help = 0; help < _nPlanes; help++) {
-    _telescopeResolX[help] = _telescopeResolution;
-    _telescopeResolY[help] = _telescopeResolution;
+  for (size_t plane = 0; plane < _nPlanes; plane++) {
+    _telescopeResolX[plane] = _telescopeResolution;
+    _telescopeResolY[plane] = _telescopeResolution;
   }
 
-  EUTelEventImpl * evt = static_cast<EUTelEventImpl*> (event) ;
+  EUTelEventImpl* evt = static_cast<EUTelEventImpl*> (event) ;
 
-  if ( evt->getEventType() == kEORE ) {
+  if( evt->getEventType() == kEORE ) {
     streamlog_out ( DEBUG2 ) << "EORE found: nothing else to do." << endl;
     return;
   }
@@ -680,9 +601,6 @@ void EUTelMille2::processEvent (LCEvent * event) {
  
   std::vector<std::vector<EUTelMille2::HitsInPlane> > _allHitsArray(_nPlanes, std::vector<EUTelMille2::HitsInPlane>());
   
-  {
- 
-    
       int icounter = 0;
       for(size_t i = 0; i < _nPlanes; i++)
       {
@@ -704,13 +622,9 @@ void EUTelMille2::processEvent (LCEvent * event) {
               icounter++;
           }
        }
-  }
 
   int _nTracks = 0;
-
   int _nGoodTracks = 0;
-
-  if (_inputMode == 1) {
 
     LCCollection* collection;
     try {
@@ -722,29 +636,19 @@ void EUTelMille2::processEvent (LCEvent * event) {
     }
     const int nTracksHere = collection->getNumberOfElements();
 
-
     // loop over all tracks
     for (int nTracksEvent = 0; nTracksEvent < nTracksHere && nTracksEvent < _maxTrackCandidates; nTracksEvent++) {
-
-      Track *TrackHere = dynamic_cast<Track*> (collection->getElementAt(nTracksEvent));
-
+      Track* TrackHere = dynamic_cast<Track*>(collection->getElementAt(nTracksEvent));
       findMatchedHits( _nTracks, TrackHere );
-
     } // end loop over all tracks
 
     streamlog_out ( MESSAGE1 ) << "Number of tracks available in track collection: " << nTracksHere << " tracks selected for Mille: " << _nTracks << std::endl;
-
-  } 
-  
   streamlog_out ( MESSAGE1 ) << "Number of track candidates found: " << _iEvt << ": " << _nTracks << endl;
 
   // Perform fit for all found track candidates
   // ------------------------------------------
 
-  // only one track or no single track event
-//  if (_nTracks == 1 || _onlySingleTrackEvents == 0) 
   {
-
     DoubleVec lambda;
     lambda.reserve(_nPlanes);
     bool validminuittrack = false;
@@ -801,9 +705,6 @@ void EUTelMille2::processEvent (LCEvent * event) {
 
       streamlog_out ( MESSAGE1 ) << endl;
      
-//    if( _inputMode == 1 ) {
-//    }else
-      { 
       if(_alignMode == 3)
         {
           streamlog_out(MESSAGE1) << " AlignMode = " << _alignMode << " _inputMode = " << _inputMode << std::endl;
@@ -831,6 +732,7 @@ void EUTelMille2::processEvent (LCEvent * event) {
                 }
               }
             }
+
             const double x = _xPos[track][help];
             const double y = _yPos[track][help];
             const double z = _zPos[track][help];
@@ -1012,15 +914,7 @@ void EUTelMille2::processEvent (LCEvent * event) {
                   //calculate the lambda parameter
                   const double la = -1.0*b0*c0-b1*c1+c0*x+c1*y+sqrt(1-c0*c0-c1*c1)*z;
                   lambda.push_back(la);
-/*
-		  if (_referenceHitVec == 0){                  
-                  //determine the residuals without reference vector
-                  _waferResidX[help] = b0 + la*c0 - x;
-                  _waferResidY[help] = b1 + la*c1 - y;
-                  _waferResidZ[help] = la*sqrt(1.0 - c0*c0 - c1*c1) - z;
 
-		  } else {
-*/
 		    // use reference vector
 		    TVector3 vpoint(b0,b1,0.);
 		    TVector3 vvector(c0,c1,c2);
@@ -1046,7 +940,6 @@ void EUTelMille2::processEvent (LCEvent * event) {
                 }
             }
           delete gMinuit;
-        }
       }
  
       streamlog_out ( MESSAGE1 ) << "Residuals X: ";
@@ -1192,28 +1085,13 @@ void EUTelMille2::processEvent (LCEvent * event) {
                   double y_sensor = 0.;
                   double z_sensor = 0.;
 
-		  if (_referenceHitVec != 0)
-{
-		    for(int ii = 0 ; ii <  _referenceHitVec->getNumberOfElements(); ii++)
-		      {
-			EUTelReferenceHit* refhit = static_cast< EUTelReferenceHit*> ( _referenceHitVec->getElementAt(ii) ) ;
-			if( _sensorIDVec[help] == refhit->getSensorID() )
-			  {
-			    x_sensor =  refhit->getXOffset();
-			    y_sensor =  refhit->getYOffset();
-			    z_sensor =  refhit->getZOffset();
-			  } 
-		      }
-}
-else
-{
+
 	int sensorID = _sensorIDVec[help];
 	x_sensor = geo::gGeometry().siPlaneXPosition(sensorID); 
 	y_sensor = geo::gGeometry().siPlaneYPosition(sensorID); 
 	z_sensor = geo::gGeometry().siPlaneZPosition(sensorID); 
-//std::cout << "Retrived: " << x_sensor << ", " << y_sensor << ", " << z_sensor << std::endl;
-}
-                  x_sensor *= 1000.;
+                  
+		x_sensor *= 1000.;
                   y_sensor *= 1000.;
                   z_sensor *= 1000.;
 
@@ -1241,7 +1119,10 @@ else
                   derLC[1] = 0.0;
                   derLC[2] = _zPosHere[help] + _waferResidZ[help];
                   derLC[3] = 0.0;
-            
+           		std::cout << "New hit: " << std::endl;	
+		 	std::cout << "_xPosHere: " << _xPosHere[help] << " x_sensor: " << x_sensor << " _waferResidX: " << _waferResidX[help] << std::endl;
+		 	std::cout << "_yPosHere: " << _yPosHere[help] << " y_sensor: " << y_sensor << " _waferResidY: " << _waferResidY[help] << std::endl;
+		 	std::cout << "_zPosHere: " << _zPosHere[help] << " z_sensor: " << z_sensor << " _waferResidZ: " << _waferResidZ[help] << std::endl;
                   residual = _waferResidX[help];
                  
                   _mille->mille(nLC,derLC,nGL,derGL,label,residual,sigmax);
@@ -1458,35 +1339,22 @@ else
 
 }
 
-TVector3 EUTelMille2::Line2Plane(int iplane, const TVector3& lpoint, const TVector3& lvector ) 
-{
-  TVector3 hitInPlane;
-  TVector3 norm2Plane;
- 
-  if( _referenceHitVec == 0 )
-  {
+TVector3 EUTelMille2::Line2Plane(int iplane, const TVector3& lpoint, const TVector3& lvector ) {
+	TVector3 hitInPlane;
+	TVector3 norm2Plane;
+
 	int sensorID = _orderedSensorID[iplane];
-  	hitInPlane.SetXYZ( geo::gGeometry().siPlaneXPosition(sensorID)*1000, geo::gGeometry().siPlaneYPosition(sensorID)*1000, geo::gGeometry().siPlaneZPosition(sensorID)*1000 );
+	hitInPlane.SetXYZ( geo::gGeometry().siPlaneXPosition(sensorID)*1000, geo::gGeometry().siPlaneYPosition(sensorID)*1000, geo::gGeometry().siPlaneZPosition(sensorID)*1000 );
 	norm2Plane = geo::gGeometry().siPlaneNormal(sensorID);
 
-//std::cout << "Retrived (offset): " << sensorID << ":" << hitInPlane(0) << ", " << hitInPlane(1) << ", " << hitInPlane(2) << std::endl;
-//std::cout << "Retrived (angle): "<< sensorID  << ":" << norm2Plane(0) << ", " << norm2Plane(1) << ", " << norm2Plane(2) << std::endl;
-  }
-  else
-  {
-  	EUTelReferenceHit* refhit = static_cast< EUTelReferenceHit*> ( _referenceHitVec->getElementAt(iplane) ) ;
-  	hitInPlane.SetXYZ( refhit->getXOffset()*1000, refhit->getYOffset()*1000, refhit->getZOffset()*1000);
-	norm2Plane.SetXYZ( refhit->getAlpha(), refhit->getBeta(), refhit->getGamma() );
-	} 
+	TVector3 point( 1.,1.,1. );
 
-        TVector3 point( 1.,1.,1. );
-          
-        double linecoord_numenator   = norm2Plane.Dot(hitInPlane-lpoint);
-        double linecoord_denumenator = norm2Plane.Dot(lvector);
+	double linecoord_numenator   = norm2Plane.Dot(hitInPlane-lpoint);
+	double linecoord_denumenator = norm2Plane.Dot(lvector);
 
-        point = (linecoord_numenator/linecoord_denumenator)*lvector + lpoint;
+	point = (linecoord_numenator/linecoord_denumenator)*lvector + lpoint;
 
-  return point;
+	return point;
 }
 
 void EUTelMille2::end() {
@@ -1500,10 +1368,7 @@ void EUTelMille2::end() {
   delete [] _waferResidX;
   delete [] _waferResidZ;
 
-  if(_alignMode == 3)
-    {
       delete []  hitsarray2;
-    }
 
   // close the output file
   delete _mille;
