@@ -29,18 +29,6 @@
 
 namespace eutelescope {
 
-//! Simple helper struct for a sensor pixel layout
-/*  Contains the pixel count as well as the offset values
- *  this is necessay if fore example pixel indices range from
- *  50-99 instead of 0-50. The offset allows mapping to a
- *  range from 0 to (pixel count - 1) which is required to
- *  access the array in which hits are counted.
- */
-struct sensor {
-	int offX, offY;
-	int sizeX, sizeY;
-};
-
 //! Processor to write out hot pixels 
 /*! This processor is used to keep hot matrix out from the analysis
  *  procedure. It checks if pixels fired above a certain frequency
@@ -155,14 +143,6 @@ protected:
     int _noOfEvents;
    	
    bool _treatNoise;
-
-    //! Vector of map arrays, keeps record of hit pixels 
-    /*! The vector elements are sorted by Detector ID
-     *  For each Detector unique ID element a map of pixels is created. 
-     *  Key is a (sensor) unique pixel Id (to be addressed via
-     *  _inverse_hitIndexMapVec)
-     */
-    std::map<int, sensor> _sensorMap;
 
     //! Current run number.
     /*! This number is used to store the current run number

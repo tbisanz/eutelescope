@@ -15,34 +15,23 @@
 
 // eutelescope geometry
 #include "EUTelGeometryTelescopeGeoDescription.h"
-#include "EUTelGenericPixGeoDescr.h"
 
 // marlin includes ".h"
 #include "marlin/Processor.h"
 #include "marlin/Exceptions.h"
 
-#if defined(USE_AIDA) || defined(MARLIN_USE_AIDA)
 #include "marlin/AIDAProcessor.h"
 #include <AIDA/ITree.h>
 #include <AIDA/IHistogram1D.h>
-#include <AIDA/IHistogram2D.h>
 #include <AIDA/IHistogramFactory.h>
-#endif
-
-// lcio includes <.h>
-#include <LCIOTypes.h>
-#include <IO/LCWriter.h>
 
 #include <IMPL/LCCollectionVec.h>
 #include <IMPL/TrackerDataImpl.h>
 #include <UTIL/CellIDEncoder.h>
 #include <UTIL/CellIDDecoder.h>
-#include <UTIL/LCTime.h>
 
-#include <EVENT/LCCollection.h>
 #include <EVENT/LCEvent.h>
 #include <Exceptions.h>
-
 
 // system includes <>
 #include <map>
@@ -50,10 +39,8 @@
 #include <cmath>
 #include <iostream>
 #include <iterator>
-#include <stdexcept>
 #include <algorithm>
 
-using namespace std;
 using namespace marlin;
 using namespace eutelescope;
 
@@ -67,8 +54,9 @@ EUTelProcessorRawHistos::EUTelProcessorRawHistos():
   //processor description
   _description = "EUTelProcessorRawHistos computes the firing frequency of pixels and applies a cut on this value to mask (NOT remove) hot pixels.";
 
-  registerInputCollection(LCIO::TRACKERDATA, "ZSDataCollectionName", "Input of Zero Suppressed data", _zsDataCollectionName, std::string("zsdata") );
-  registerOptionalParameter("NoisyPixelCollectionName", "Name of the noisy pixel collection", _noisyPixCollectionName, std::string("noisypixel"));
+  registerInputCollection(LCIO::TRACKERDATA, "ZSDataCollectionName", "Zero suppressed data input collection name", _zsDataCollectionName, std::string("zsdata") );
+  registerOptionalParameter("NoisyPixelCollectionName", "Name of the noisy pixel collection. Leave empty if you don't want to create noise free histograms.", 
+  _noisyPixCollectionName, std::string(""));
 }
 
 void EUTelProcessorRawHistos::init() {
@@ -83,8 +71,12 @@ void EUTelProcessorRawHistos::init() {
 	std::string name("test.root");
 	geo::gGeometry().initializeTGeoDescription(name,true);
 	_sensorIDVec = geo::gGeometry().sensorIDsVec();
-	bookHistos();	
-	_treatNoise = true;
+	bookHistos();
+	if(_noisyPixCollectionName.length() != 0) {
+		_treatNoise = true;
+	} else {
+		 _treatNoise = false;
+	}
 }
 
 int EUTelProcessorRawHistos::cantorEncode(int X, int Y) {
@@ -106,27 +98,25 @@ void EUTelProcessorRawHistos::initialiseNoisyPixels( LCCollectionVec* const nois
 		int pixelType = cellDecoder( noisyTrackerData )["sparsePixelType"];
 		//And get the corresponding noise vector for that plane
 		std::vector<int>* noiseSensorVector = &(_noisyPixelVecMap[sensorID]);
-
-		unique_ptr<EUTelTrackerDataInterfacer> noisyPixelData = auto_ptr<EUTelTrackerDataInterfacer>();
+		std::unique_ptr<EUTelTrackerDataInterfacer> noisyPixelData = std::unique_ptr<EUTelTrackerDataInterfacer>();
 
 		if( pixelType == kEUTelGenericSparsePixel ) {
-			noisyPixelData =  unique_ptr<EUTelTrackerDataInterfacer>( new EUTelTrackerDataInterfacerImpl<EUTelGenericSparsePixel>(noisyTrackerData) );
+			noisyPixelData = std::unique_ptr<EUTelTrackerDataInterfacer>( new EUTelTrackerDataInterfacerImpl<EUTelGenericSparsePixel>(noisyTrackerData) );
 		}
 		//Store all the noisy pixels in the noise vector, use the provided encoding to map two int's to an unique int
-		for ( unsigned int iPixel = 0; iPixel < noisyPixelData->size(); iPixel++ ) {
+		for( unsigned int iPixel = 0; iPixel < noisyPixelData->size(); iPixel++ ) {
 			pixel = noisyPixelData->getSparsePixelAt( iPixel, pixel);
 			noiseSensorVector->push_back( cantorEncode(pixel->getXCoord(), pixel->getYCoord()) );
 		}
 	}
 	delete pixel;
-
 	for(auto& i: _noisyPixelVecMap) {
 		std::sort(i.second.begin(), i.second.end() );
 	}
 }
  
 void EUTelProcessorRawHistos::processRunHeader(LCRunHeader* rdr) {
-	unique_ptr<EUTelRunHeaderImpl> runHeader( new EUTelRunHeaderImpl(rdr) );
+	std::unique_ptr<EUTelRunHeaderImpl> runHeader( new EUTelRunHeaderImpl(rdr) );
 	runHeader->addProcessor(type());
 	// increment the run counter
 	++_iRun;
@@ -134,27 +124,26 @@ void EUTelProcessorRawHistos::processRunHeader(LCRunHeader* rdr) {
 	_iEvt = 0;
 }
 
-void EUTelProcessorRawHistos::processEvent (LCEvent* event) {
+void EUTelProcessorRawHistos::processEvent(LCEvent* event) {
 	if( event == nullptr ) {
 		streamlog_out ( WARNING2 ) <<  "Event does not exist! Skipping!" <<  std::endl;       
 		return;
 	}
 
+	//The noisy pixel collection stores all the noisy pixels in the first event, thus we have to retrieve them during it
 	if( _iEvt == 0 ) {
-		try 
-		{
+		try {
 			auto noisyPixelCollection = static_cast< LCCollectionVec*>( event->getCollection(_noisyPixCollectionName) );
 			initialiseNoisyPixels( noisyPixelCollection );		
 		} catch (...) {
-			if (!_noisyPixCollectionName.empty())
-			{
-				streamlog_out( WARNING1 ) << "_noisyPixCollectionName " << _noisyPixCollectionName << " not found" << endl;
+			if (!_noisyPixCollectionName.empty()) {
+				streamlog_out( WARNING1 ) << "_noisyPixCollectionName " << _noisyPixCollectionName << " not found" << std::endl;
 			}
 			_treatNoise = false;
 		}
 	}
 
-	EUTelEventImpl* evt = static_cast<EUTelEventImpl*> (event);
+	EUTelEventImpl* evt = static_cast<EUTelEventImpl*>(event);
 	if ( evt->getEventType() == kEORE ) {
 		streamlog_out ( DEBUG4 ) <<  "EORE found: nothing else to do." <<  std::endl;
 		return;
@@ -162,8 +151,7 @@ void EUTelProcessorRawHistos::processEvent (LCEvent* event) {
 		streamlog_out ( WARNING2 ) << "Event number " << event->getEventNumber() << " is of unknown type. Continue considering it as a normal Data Event." << std::endl;
 	}
 
-	try
-	{
+	try {
 		LCCollectionVec* zsInputCollectionVec  = dynamic_cast < LCCollectionVec * > (evt->getCollection( _zsDataCollectionName ));
 		CellIDDecoder<TrackerDataImpl> cellDecoder( zsInputCollectionVec );
 
@@ -183,8 +171,7 @@ void EUTelProcessorRawHistos::processEvent (LCEvent* event) {
 			int sensorID            = static_cast<int > ( cellDecoder( zsData )["sensorID"] );
 
 			// now prepare the EUTelescope interface to sparsified data.  
-			unique_ptr<EUTelTrackerDataInterfacerImpl<EUTelGenericSparsePixel > >  sparseData (new EUTelTrackerDataInterfacerImpl<EUTelGenericSparsePixel> ( zsData ));
-			
+			std::unique_ptr<EUTelTrackerDataInterfacerImpl<EUTelGenericSparsePixel > >  sparseData (new EUTelTrackerDataInterfacerImpl<EUTelGenericSparsePixel> ( zsData ));
 			EUTelGenericSparsePixel* genericPixel =  new EUTelGenericSparsePixel();
 
 			// loop over all pixels in the sparseData object, these are the hit pixels!
@@ -205,7 +192,7 @@ void EUTelProcessorRawHistos::processEvent (LCEvent* event) {
 				_chargeHisto.at(sensorID)->fill(genericPixel->getSignal());
 				_timeHisto.at(sensorID)->fill(genericPixel->getTime());		
 		
-				if(!isNoisy) {	
+				if(!isNoisy && _treatNoise) {	
 					rawHitsPerPlaneNoNoise[sensorID]++;
 					_chargeHistoNoNoise.at(sensorID)->fill(genericPixel->getSignal());
 					_timeHistoNoNoise.at(sensorID)->fill(genericPixel->getTime());		
@@ -217,8 +204,10 @@ void EUTelProcessorRawHistos::processEvent (LCEvent* event) {
 		for(auto& i: rawHitsPerPlane) {
 			_countHisto.at(i.first)->fill(i.second);
 		}	
-		for(auto& i: rawHitsPerPlaneNoNoise) {
-			_countHistoNoNoise.at(i.first)->fill(i.second);
+		if(_treatNoise) {
+			for(auto& i: rawHitsPerPlaneNoNoise) {
+				_countHistoNoNoise.at(i.first)->fill(i.second);
+			}
 		}
 	} catch (lcio::DataNotAvailableException& e ) {
 		streamlog_out ( WARNING2 )  << "Input collection not found in the current event. Skipping..." << e.what() << std::endl;
@@ -232,9 +221,7 @@ void EUTelProcessorRawHistos::end() {
 }
 
 void EUTelProcessorRawHistos::bookHistos() {
-	streamlog_out ( MESSAGE1 ) << "Booking histograms " << std::endl;
-
-	for( auto sensorID: _sensorIDVec) {
+	for(auto sensorID: _sensorIDVec) {
 		auto basePath = "detector_" + to_string(sensorID);			
 		AIDAProcessor::tree(this)->mkdir(basePath.c_str());
 		basePath.append("/");
@@ -246,17 +233,19 @@ void EUTelProcessorRawHistos::bookHistos() {
 		auto rawHitCountHisto = AIDAProcessor::histogramFactory(this)->createHistogram1D( (basePath + countHistoName).c_str(), 20, -0.5, 19.5 );
 		auto rawHitChargeHisto = AIDAProcessor::histogramFactory(this)->createHistogram1D( (basePath + chargeHistoName).c_str(), 20, -0.5, 19.5 );
 		auto rawHitTimeHisto = AIDAProcessor::histogramFactory(this)->createHistogram1D( (basePath + timeHistoName).c_str(),20, -0.5, 19.5 );
-
-		auto rawHitCountHistoNoNoise = AIDAProcessor::histogramFactory(this)->createHistogram1D( (basePath + countHistoName+"_noNoise").c_str(), 20, -0.5, 19.5 );
-		auto rawHitChargeHistoNoNoise = AIDAProcessor::histogramFactory(this)->createHistogram1D( (basePath + chargeHistoName+"_noNoise").c_str(), 20, -0.5, 19.5 );
-		auto rawHitTimeHistoNoNoise = AIDAProcessor::histogramFactory(this)->createHistogram1D( (basePath + timeHistoName+"_noNoise").c_str(),20, -0.5, 19.5 );
-
+		
 		_countHisto[sensorID] = rawHitCountHisto;
 		_chargeHisto[sensorID] = rawHitChargeHisto;
 		_timeHisto[sensorID] = rawHitTimeHisto;
+	
+		if(_treatNoise) {
+			auto rawHitCountHistoNoNoise = AIDAProcessor::histogramFactory(this)->createHistogram1D( (basePath + countHistoName+"_noNoise").c_str(), 20, -0.5, 19.5 );
+			auto rawHitChargeHistoNoNoise = AIDAProcessor::histogramFactory(this)->createHistogram1D( (basePath + chargeHistoName+"_noNoise").c_str(), 20, -0.5, 19.5 );
+			auto rawHitTimeHistoNoNoise = AIDAProcessor::histogramFactory(this)->createHistogram1D( (basePath + timeHistoName+"_noNoise").c_str(),20, -0.5, 19.5 );
 
-		_countHistoNoNoise[sensorID] = rawHitCountHistoNoNoise;
-		_chargeHistoNoNoise[sensorID] = rawHitChargeHistoNoNoise;
-		_timeHistoNoNoise[sensorID] = rawHitTimeHistoNoNoise;
+			_countHistoNoNoise[sensorID] = rawHitCountHistoNoNoise;
+			_chargeHistoNoNoise[sensorID] = rawHitChargeHistoNoNoise;
+			_timeHistoNoNoise[sensorID] = rawHitTimeHistoNoNoise;
+		}
 	}
 }
