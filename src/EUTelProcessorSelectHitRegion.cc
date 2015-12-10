@@ -92,10 +92,12 @@ void EUTelProcessorSelectHitRegion::processEvent(LCEvent* event) {
 			
 			const double* inputPos = inputHit->getPosition();
 
-			if( 	inputPos[0] >= _xMin &&
+			auto it = std::find(_plane.begin(), _plane.end(), sensorID);
+			if(	 	it == _plane.end() || 
+					(inputPos[0] >= _xMin &&
  					inputPos[0] <= _xMax &&
 					inputPos[1] >= _yMin &&
-					inputPos[1] <= _yMax ) {	
+					inputPos[1] <= _yMax)) {	
 					
 					outputHit->setPosition( inputPos );
 					outputHit->setCovMatrix( inputHit->getCovMatrix());
