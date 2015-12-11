@@ -92,8 +92,8 @@ void EUTelProcessorSelectHitRegion::processEvent(LCEvent* event) {
 			
 			const double* inputPos = inputHit->getPosition();
 
-			auto it = std::find(_plane.begin(), _plane.end(), sensorID);
-			if(	 	it == _plane.end() || 
+			auto it = std::find(_planes.begin(), _planes.end(), sensorID);
+			if(	 	it == _planes.end() || 
 					(inputPos[0] >= _xMin &&
  					inputPos[0] <= _xMax &&
 					inputPos[1] >= _yMin &&
