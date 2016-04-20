@@ -46,6 +46,8 @@
 #include "EUTelSparseClusterImpl.h"
 #include "EUTelReferenceHit.h"
 
+#include "EUTelGeometryTelescopeGeoDescription.h"
+
 // marlin includes ".h"
 #include "marlin/Processor.h"
 #include "marlin/Global.h"
@@ -160,7 +162,21 @@ EUTelDafBase::EUTelDafBase(std::string name) : marlin::Processor(name) {
   registerOptionalParameter("NDutHits", "How many DUT hits do we need in order to accept track?", _nDutHits, static_cast <int>(0));
 }
 
-bool EUTelDafBase::defineSystemFromData(){
+void EUTelDafBase::defineSystemFromTelGeo(){
+  for(size_t plane = 0; plane < _system.planes.size(); plane++){
+
+	  geo::gGeometry().initializeTGeoDescription(EUTELESCOPE::GEOFILENAME, EUTELESCOPE::DUMPGEOROOT);
+  	  daffitter::FitPlane<float>& pl = _system.planes.at(plane);
+	auto sensorID = pl.getSensorID();
+  	
+	auto normGeoFW = geo::gGeometry().siPlaneNormal( sensorID );
+	Eigen::Vector3f normVec ( normGeoFW[0], normGeoFW[1], normGeoFW[2] );
+	 pl.setPlaneNorm(normVec);
+  }
+}
+
+	  
+	  bool EUTelDafBase::defineSystemFromData(){
   //Find three measurements per plane, use these three to define the plane as a point and a normal vector
   bool gotIt = true;
   for(size_t plane = 0; plane < _system.planes.size(); plane++){
@@ -611,7 +627,9 @@ void EUTelDafBase::processEvent(LCEvent * event){
   
   if( not _initializedSystem ){
     //If the system is not initialized, try to finish initialization from event data.
-    _initializedSystem = defineSystemFromData();
+    //_initializedSystem = defineSystemFromData();
+    _initializedSystem = true;
+    defineSystemFromTelGeo();
     //If initialization is not done, we need data from more events.
     if(not _initializedSystem) { return; }
     streamlog_out(MESSAGE1) << "Initialized system at event " << event->getEventNumber() << std::endl;
