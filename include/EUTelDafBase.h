@@ -63,7 +63,8 @@ namespace eutelescope {
     //! Called after data processing.
     virtual void end();
     bool defineSystemFromData();
-    
+    void defineSystemFromTelGeo();
+
     virtual inline bool ReferenceHitVecIsSet(){ return _referenceHitVec==0; }    
 
     enum DafTrackFinder { simpleCluster, combinatorialKF };
