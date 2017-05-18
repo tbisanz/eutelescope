@@ -251,12 +251,12 @@ void EUTelProcessorHitMaker::processEvent(LCEvent *event) {
                             << endl;
   }
 
-  LCCollection* pulseCollectionTemp = nullptr;
+  LCCollection* pulseCollectionTemp = evt->getCollectionNoThrow(_pulseCollectionName);
   LCCollectionVec* pulseCollection = nullptr;
-  LCCollection* hitCollectionTemp = nullptr;
+  LCCollection* hitCollectionTemp = evt->getCollectionNoThrow(_hitCollectionName);
   LCCollectionVec* hitCollection = nullptr;
 
-  if( (pulseCollectionTemp = evt->getCollectionNoThrow(_pulseCollectionName)) ){
+  if(pulseCollectionTemp){
     pulseCollection = static_cast<LCCollectionVec*>(pulseCollectionTemp); 
   } else {
     streamlog_out(MESSAGE2) << "No input collection " << _pulseCollectionName
@@ -265,7 +265,7 @@ void EUTelProcessorHitMaker::processEvent(LCEvent *event) {
     return;
   }
 
-  if( (hitCollectionTemp = evt->getCollectionNoThrow(_hitCollectionName)) ){
+  if(hitCollectionTemp){
     hitCollection = static_cast<LCCollectionVec*>(hitCollectionTemp);
   } else {
 	appendOutputCollection = true;

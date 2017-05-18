@@ -215,10 +215,10 @@ void EUTelPreAlign::processEvent(LCEvent *event) {
                             << endl;
   }
 
-    LCCollection* inputCollection = nullptr; 
+    LCCollection* inputCollection = evt->getCollectionNoThrow(_inputHitCollectionName); 
     LCCollectionVec* inputCollectionVec = nullptr;
-
-	if( (inputCollection = evt->getCollectionNoThrow(_inputHitCollectionName)) ) {
+	
+	if(inputCollection) {
 	inputCollectionVec = static_cast<LCCollectionVec*>(inputCollection);
     UTIL::CellIDDecoder<TrackerHitImpl> hitDecoder(EUTELESCOPE::HITENCODING);
 

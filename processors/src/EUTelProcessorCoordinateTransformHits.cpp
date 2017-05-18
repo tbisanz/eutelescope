@@ -88,13 +88,13 @@ void EUTelProcessorCoordinateTransformHits::processEvent(LCEvent* event)
 		}
 
 		//Opens collection for input.
-		LCCollection* inputCollection = nullptr;
-		LCCollection* outputCollectionTemp = nullptr;
+		LCCollection* inputCollection = evt->getCollectionNoThrow(_hitCollectionNameInput);
+		LCCollection* outputCollectionTemp = event->getCollectionNoThrow( _hitCollectionNameOutput);
 		LCCollectionVec* outputCollection = nullptr;
-		if( !(inputCollection = evt->getCollectionNoThrow(_hitCollectionNameInput)) ){
+		if(!inputCollection){
 				streamlog_out( WARNING2 ) << _hitCollectionNameInput << " collection not available" << std::endl;
 		}
-		if( (outputCollectionTemp = event->getCollectionNoThrow( _hitCollectionNameOutput)) ) {
+		if(outputCollectionTemp){
 			outputCollection = static_cast<LCCollectionVec*>(outputCollectionTemp);
 		} else {
 				outputCollection = new LCCollectionVec(LCIO::TRACKERHIT);
