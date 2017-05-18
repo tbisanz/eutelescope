@@ -266,36 +266,27 @@ void EUTelCorrelator::processEvent(LCEvent *event) {
   for (size_t i = 0; i < _clusterCollectionVec.size(); i++) {
     std::string _inputClusterCollectionName = _clusterCollectionVec[i];
 
-    try {
-      // let's check if we have cluster collections
-      event->getCollection(_inputClusterCollectionName);
-
+    // let's check if we have cluster collections
+    if(event->getCollectionNoThrow(_inputClusterCollectionName)) {
       _hasClusterCollection = true;
       streamlog_out(DEBUG5) << "found " << i << " name "
                             << _inputClusterCollectionName.c_str() << endl;
 
-    } catch (lcio::Exception &e) {
-
+    } else {
       _hasClusterCollection = false;
       streamlog_out(WARNING) << "NOT found " << i << " name "
                              << _inputClusterCollectionName.c_str() << endl;
-
       break;
     }
   }
 
-  try {
-    // let's check if we have hit collections
-
-    event->getCollection(_inputHitCollectionName);
-
+  // let's check if we have hit collections
+  if(event->getCollectionNoThrow(_inputHitCollectionName)) {
     _hasHitCollection = true;
     streamlog_out(DEBUG5) << "found "
                           << " name " << _inputHitCollectionName.c_str()
                           << endl;
-
-  } catch (lcio::Exception &e) {
-
+  } else {
     _hasHitCollection = false;
     streamlog_out(DEBUG5) << "NOT found "
                           << " name " << _inputHitCollectionName.c_str()

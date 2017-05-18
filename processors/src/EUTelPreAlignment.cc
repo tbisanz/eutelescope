@@ -215,9 +215,11 @@ void EUTelPreAlign::processEvent(LCEvent *event) {
                             << endl;
   }
 
-  try {
-    LCCollectionVec *inputCollectionVec = dynamic_cast<LCCollectionVec *>(
-        evt->getCollection(_inputHitCollectionName));
+    LCCollection* inputCollection = nullptr; 
+    LCCollectionVec* inputCollectionVec = nullptr;
+
+	if( (inputCollection = evt->getCollectionNoThrow(_inputHitCollectionName)) ) {
+	inputCollectionVec = static_cast<LCCollectionVec*>(inputCollection);
     UTIL::CellIDDecoder<TrackerHitImpl> hitDecoder(EUTELESCOPE::HITENCODING);
 
     std::vector<float> residX;
@@ -303,7 +305,7 @@ void EUTelPreAlign::processEvent(LCEvent *event) {
         }
       }
     }
-  } catch (DataNotAvailableException &e) {
+  } else {
     streamlog_out(WARNING2) << "No input collection " << _inputHitCollectionName
                             << " found on event " << event->getEventNumber()
                             << " in run " << event->getRunNumber() << endl;

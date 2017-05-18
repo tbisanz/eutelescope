@@ -236,6 +236,7 @@ void EUTelProcessorHitMaker::processRunHeader(LCRunHeader *rdr) {
 void EUTelProcessorHitMaker::processEvent(LCEvent *event) {
 
   ++_iEvt;
+  bool appendOutputCollection = false;
 
   EUTelEventImpl *evt = static_cast<EUTelEventImpl *>(event);
 
@@ -250,23 +251,24 @@ void EUTelProcessorHitMaker::processEvent(LCEvent *event) {
                             << endl;
   }
 
-  LCCollectionVec *pulseCollection = 0;
-  LCCollectionVec *hitCollection = 0;
+  LCCollection* pulseCollectionTemp = nullptr;
+  LCCollectionVec* pulseCollection = nullptr;
+  LCCollection* hitCollectionTemp = nullptr;
+  LCCollectionVec* hitCollection = nullptr;
 
-  try {
-    pulseCollection = static_cast<LCCollectionVec *>(
-        event->getCollection(_pulseCollectionName));
-  } catch (DataNotAvailableException &e) {
+  if( (pulseCollectionTemp = evt->getCollectionNoThrow(_pulseCollectionName)) ){
+    pulseCollection = static_cast<LCCollectionVec*>(pulseCollectionTemp); 
+  } else {
     streamlog_out(MESSAGE2) << "No input collection " << _pulseCollectionName
                             << " found on event " << event->getEventNumber()
                             << " in run " << event->getRunNumber() << endl;
     return;
   }
 
-  try {
-    hitCollection = static_cast<LCCollectionVec *>(
-        event->getCollection(_hitCollectionName));
-  } catch (...) {
+  if( (hitCollectionTemp = evt->getCollectionNoThrow(_hitCollectionName)) ){
+    hitCollection = static_cast<LCCollectionVec*>(hitCollectionTemp);
+  } else {
+	appendOutputCollection = true;
     hitCollection = new LCCollectionVec(LCIO::TRACKERHIT);
   }
 
@@ -516,9 +518,7 @@ void EUTelProcessorHitMaker::processEvent(LCEvent *event) {
     hitCollection->push_back(hit);
   }
 
-  try {
-    event->getCollection(_hitCollectionName);
-  } catch (...) {
+  if(appendOutputCollection) {
     event->addCollection(hitCollection, _hitCollectionName);
   }
 
