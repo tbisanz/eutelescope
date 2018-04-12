@@ -65,6 +65,7 @@ namespace eutelescope {
   private:
     std::string _hitCollection1NameInput;
     std::string _hitCollection2NameInput;
+    //std::vector holding sensor IDs
     std::vector<int> _sensorIDVec;
     std::map<int, AIDA::IHistogram1D*> _HitDifHisto;
   }; // close class declaration
