@@ -37,14 +37,12 @@ using namespace eutelescope;
 
 EUTelTestProcessor::EUTelTestProcessor():
 Processor("EUTelTestProcessor"),
-_hitCollection1NameInput(),
-_hitCollection2NameInput()	
+_hitCollectionEUTInput(),
+_hitCollectionMCInput()	
 {
-		_description ="This is a test to learn what we're doing";
-		registerInputCollection(LCIO::TRACKERHIT, "hitCollection1NameInput", "Test Input Collection", _hitCollection1NameInput, std::string("local_hit"));
-
-                _description ="This is a second Test to learn what we're doing";
-                registerInputCollection(LCIO::TRACKERHIT, "hitCollection2NameInput", "Test Input Collection2", _hitCollection2NameInput, std::string("hit"));
+		_description ="input collection from EUTelescope hitmaker and mc_hit";
+		registerInputCollection(LCIO::TRACKERHIT, "hitCollectionEUTInput", "EUTelescope Input Collection", _hitCollectionEUTInput, std::string("hit"));
+                registerInputCollection(LCIO::TRACKERHIT, "hitCollectionMCInput", "Monte Carlo Input Collection", _hitCollectionMCInput, std::string("mc_hit"));
 }
 
 
@@ -59,7 +57,7 @@ void EUTelTestProcessor::init() {
 
 void EUTelTestProcessor::processRunHeader(LCRunHeader* rdr)
 {
-	//maybe put some stuff here?
+	
 }
 
 void EUTelTestProcessor::processEvent(LCEvent* event)
@@ -68,68 +66,112 @@ void EUTelTestProcessor::processEvent(LCEvent* event)
 		LCCollection* inputCollection = nullptr;
 		EUTelEventImpl *evt = static_cast<EUTelEventImpl *>(event);
 	//	try {
-				inputCollection = evt->getCollection(_hitCollection1NameInput);
+				inputCollection = evt->getCollection(_hitCollectionEUTInput);
 	//	} catch (DataNotAvailableException& e) {
 	//			streamlog_out( WARNING2 ) << _hitCollectionNameInput << " collection not available" << std::endl;
 	//			return;
 	//	}
 		LCCollection* inputCollection2 = nullptr;
 		
-				inputCollection2 = evt->getCollection(_hitCollection2NameInput);
+				inputCollection2 = evt->getCollection(_hitCollectionMCInput);
 		/*std::string encoding = inputCollection->getParameters().getStringVal( LCIO::CellIDEncoding );
 		if(encoding.empty()) {
 			encoding = EUTELESCOPE::HITENCODING;
 		}*/
 		lcio::CellIDDecoder<TrackerHitImpl> hitDecoder ( EUTELESCOPE::HITENCODING );
+		
+		//preparing maps for input comparison
 
-		//Now get each individual hit LOOP OVER!
-		for(int iHit = 0; iHit < inputCollection->getNumberOfElements(); ++iHit) {  
-			TrackerHitImpl*	inputHit = static_cast<TrackerHitImpl*>(inputCollection->getElementAt(iHit));
+		std::vector<TrackerDataImpl*> registeredRawData;
+		std::map<TrackerDataImpl*, TrackerHitImpl*> map1;
+		std::map<TrackerDataImpl*, TrackerHitImpl*> map2;
+
+		//filling maps
+
+		for(int iHit = 0; iHit < inputCollection->getNumberOfElements(); ++iHit) {
+                        TrackerHitImpl* inputHit = static_cast<TrackerHitImpl*>(inputCollection->getElementAt(iHit));
+
+
+                        auto objectVector1 = inputHit->getRawHits();
+                        auto const & cluster_zs_data1 = static_cast<TrackerDataImpl*>(objectVector1[0]);
+                        map1.insert(std::pair<TrackerDataImpl*, TrackerHitImpl*>(cluster_zs_data1, inputHit) );
+		}
+
+
+		
+		for(int iHit = 0; iHit < inputCollection2->getNumberOfElements(); ++iHit) {
 			TrackerHitImpl* inputHit2 = static_cast<TrackerHitImpl*>(inputCollection2->getElementAt(iHit));
-			//Call the local2masterHit/master2localHit function defined int EUTelGeometryTelescopeDescription
-			//int properties = hitDecoder(inputHit)["properties"];
-			int sensorID = hitDecoder(inputHit)["sensorID"];
-			const double* inputPos = inputHit->getPosition();
-			const double* inputPos2 = inputHit2->getPosition();
-			std::array<double, 3> inputArray1 = { inputPos[0], inputPos[1], inputPos[2] };
-			std::array<double, 3> inputArray2 = { inputPos2[0], inputPos2[1], inputPos2[2] };
-			double X=0;
-			double X2=0;
-			double Y=0;
-			double Y2=0;
-			//std::cout << "local x: " << *inputPos << " local Y: " << *(inputPos+1) << " local Z: " << *(inputPos+2) << std::endl;
-                        //std::cout << "global X: " << *inputPos2 << " global Y: " << *(inputPos2+1) << " global Z: " << *(inputPos2+2) << std::endl;
-			if(*(inputPos)<0){
-				X=*(inputPos)*-1;
-			}
-			else{
-				X=*(inputPos);
-			}
-			if(*(inputPos2)<0){
-                                X2=*(inputPos2)*-1;
-                        }
-			else{
-				X2=*(inputPos2);
-			}
-			if(*(inputPos+1)<0){
-                                Y=*(inputPos+1)*-1;
-                        }
-                        else{
-                                Y=*(inputPos+1);
-                        }
-                        if(*(inputPos2+1)<0){
-                                Y2=*(inputPos2+1)*-1;
-                        }
-                        else{
-                                Y2=*(inputPos2+1);
-                        }
 
-			double difX = X - X2;
-			double difY = Y - Y2;
-			//double difZ = *(Pos+2) - *(Pos2+2);
-			double dif = sqrt(difX * difX+difY * difY);
-			//std::cout << "Difference between local and global coordinates without Z: " << dif << std::endl;
-			_HitDifHisto.at(sensorID)->fill(dif);
+			
+			auto objectVector2 = inputHit2->getRawHits();
+			auto const & cluster_zs_data2 = static_cast<TrackerDataImpl*>(objectVector2[0]);
+			map2.insert(std::pair<TrackerDataImpl*, TrackerHitImpl*>(cluster_zs_data2, inputHit2));
+				
+		}
+
+		//compare number of hits in the collections
+
+		if(inputCollection->getNumberOfElements() >= inputCollection2->getNumberOfElements()){
+			for(int iHit = 0; iHit < inputCollection->getNumberOfElements(); ++iHit) {
+				
+				TrackerHitImpl* inputHit = static_cast<TrackerHitImpl*>(inputCollection->getElementAt(iHit));
+				int sensorID = hitDecoder(inputHit)["sensorID"];
+				auto objectVector1 = inputHit->getRawHits();
+                        	auto const & cluster_zs_data1 = static_cast<TrackerDataImpl*>(objectVector1[0]);
+				if(map2.find(cluster_zs_data1) != map2.end()){
+					//if hit in both collections compute difference in coordinates
+				
+					const double* inputPos = map1[cluster_zs_data1]->getPosition();
+					const double* inputPos2 = map2[cluster_zs_data1]->getPosition();
+					std::array<double, 3> inputArray1 = { inputPos[0], inputPos[1], inputPos[2] };
+					std::array<double, 3> inputArray2 = { inputPos2[0], inputPos2[1], inputPos2[2] };
+				
+
+					double difX = (inputArray1[0] - inputArray2[0])*1000;
+                                        double difY = (inputArray1[1] - inputArray2[1])*1000;
+                                        double difZ = (inputArray1[2] - inputArray2[2])*1000;
+					double dif = sqrt(difX * difX+difY * difY+difZ*difZ);
+					
+					_HitDifHisto.at(sensorID)->fill(dif);
+					_HitXDifHisto.at(sensorID)->fill(difX);
+                                        _HitYDifHisto.at(sensorID)->fill(difY);
+                                        _HitZDifHisto.at(sensorID)->fill(difZ);
+				}
+				else{
+					streamlog_out(WARNING1) << "missmatch between number of hits in monte carlo and EUTelescope data sample" << std::endl;
+				}
+			}
+		}
+		if(inputCollection->getNumberOfElements() < inputCollection2->getNumberOfElements()){
+			for(int iHit = 0; iHit < inputCollection2->getNumberOfElements(); ++iHit) {
+                                
+                                TrackerHitImpl* inputHit2 = static_cast<TrackerHitImpl*>(inputCollection2->getElementAt(iHit));
+                                int sensorID = hitDecoder(inputHit2)["sensorID"];
+                                auto objectVector2 = inputHit2->getRawHits();
+                                auto const & cluster_zs_data2 = static_cast<TrackerDataImpl*>(objectVector2[0]);
+                                if(map1.find(cluster_zs_data2) != map1.end()){
+					//if hit in both collections compute difference in coordinates
+
+                                        const double* inputPos = map1[cluster_zs_data2]->getPosition();
+                                        const double* inputPos2 = map2[cluster_zs_data2]->getPosition();
+                                        std::array<double, 3> inputArray1 = { inputPos[0], inputPos[1], inputPos[2] };
+                                        std::array<double, 3> inputArray2 = { inputPos2[0], inputPos2[1], inputPos2[2] };
+
+
+                                        double difX = (inputArray1[0] - inputArray2[0])*1000;
+                                        double difY = (inputArray1[1] - inputArray2[1])*1000;
+                                        double difZ = (inputArray1[2] - inputArray2[2])*1000;
+                                        double dif = sqrt(difX * difX+difY * difY+difZ*difZ);
+                                        
+                                        _HitDifHisto.at(sensorID)->fill(dif);
+					_HitXDifHisto.at(sensorID)->fill(difX);
+					_HitYDifHisto.at(sensorID)->fill(difY);
+					_HitZDifHisto.at(sensorID)->fill(difZ);
+                                }
+				else{
+					streamlog_out(WARNING1) << "missmatch between number of hits in monte carlo and EUTelescope data sample" << std::endl;
+				}
+                        }
 
 		}
 }
@@ -147,14 +189,57 @@ void EUTelTestProcessor::bookHistos() {
 		 marlin::AIDAProcessor::tree(this)->mkdir(basePath.c_str());
   		 basePath.append("/");
 
-		 auto const countHistoName = "difference_in_local_and_global_coordinates" + to_string(sensorID);
+		 auto const countHistoName = "absolut hitposition difference" ;
 
 		 auto HitDifHisto =
        			 marlin::AIDAProcessor::histogramFactory(this)->createHistogram1D(
-           		 (basePath + countHistoName).c_str(), 100, -0.02, 0.02);
+           		 (basePath + countHistoName).c_str(), 100, 0, 100);
+		 HitDifHisto->setTitle("absolut hitposition difference  ;difference in hit position [#mu];number of events");
 
 		 _HitDifHisto[sensorID] = HitDifHisto;
 	}
+	for (auto sensorID : _sensorIDVec) {
+                 auto basePath = "detector_" + to_string(sensorID);
+                 marlin::AIDAProcessor::tree(this)->mkdir(basePath.c_str());
+                 basePath.append("/");
+
+                 auto const countHistoName = "hitposition X-difference";
+
+                 auto HitXDifHisto =
+                         marlin::AIDAProcessor::histogramFactory(this)->createHistogram1D(
+                         (basePath + countHistoName).c_str(), 100, -20, 20);
+		 HitXDifHisto->setTitle("hitposition X-difference  ;difference in hit position [#mu];number of events");
+
+                 _HitXDifHisto[sensorID] = HitXDifHisto;
+        }
+	for (auto sensorID : _sensorIDVec) {
+                 auto basePath = "detector_" + to_string(sensorID);
+                 marlin::AIDAProcessor::tree(this)->mkdir(basePath.c_str());
+                 basePath.append("/");
+
+                 auto const countHistoName = "hitposition Y-difference";
+
+                 auto HitYDifHisto =
+                         marlin::AIDAProcessor::histogramFactory(this)->createHistogram1D(
+                         (basePath + countHistoName).c_str(), 100, -20, 20);
+		 HitYDifHisto->setTitle("hitposition Y-difference  ;difference in hit position [#mu];number of events");
+
+                 _HitYDifHisto[sensorID] = HitYDifHisto;
+        }
+	for (auto sensorID : _sensorIDVec) {
+                 auto basePath = "detector_" + to_string(sensorID);
+                 marlin::AIDAProcessor::tree(this)->mkdir(basePath.c_str());
+                 basePath.append("/");
+
+                 auto const countHistoName = "hitposition Z-difference";
+
+                 auto HitZDifHisto =
+                         marlin::AIDAProcessor::histogramFactory(this)->createHistogram1D(
+                         (basePath + countHistoName).c_str(), 100, -100, 100);
+		 HitZDifHisto->setTitle("hitposition Z-difference  ;difference in hit position [#mu];number of events");
+
+                 _HitZDifHisto[sensorID] = HitZDifHisto;
+        }
 }
 
 	
