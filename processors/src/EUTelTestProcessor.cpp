@@ -56,8 +56,7 @@ void EUTelTestProcessor::init() {
 		std::cout << "EUTelTestProcessor::init()" << std::endl;
 }
 
-void EUTelTestProcessor::processRunHeader(LCRunHeader* rdr)
-{
+void EUTelTestProcessor::processRunHeader(LCRunHeader* /*rdr*/){
 	
 }
 
@@ -116,7 +115,7 @@ void EUTelTestProcessor::processEvent(LCEvent* event)
 			for(int iHit = 0; iHit < inputCollection->getNumberOfElements(); ++iHit) {
 				
 				TrackerHitImpl* inputHit = static_cast<TrackerHitImpl*>(inputCollection->getElementAt(iHit));
-				TrackerHitImpl* inputHit2 = static_cast<TrackerHitImpl*>(inputCollection2->getElementAt(iHit));
+				//TrackerHitImpl* inputHit2 = static_cast<TrackerHitImpl*>(inputCollection2->getElementAt(iHit));
 				int sensorID = hitDecoder(inputHit)["sensorID"];
 				auto objectVector1 = inputHit->getRawHits();
                         	auto const & cluster_zs_data1 = static_cast<TrackerDataImpl*>(objectVector1[0]);
