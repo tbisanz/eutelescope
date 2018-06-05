@@ -12,6 +12,7 @@
 // eutelescope includes ".h"
 #include "EUTelEventImpl.h"
 #include "EUTelUtility.h"
+#include "EUTelTripletGBLUtility.h"
 
 // marlin includes ".h"
 #include "marlin/Processor.h"
@@ -62,12 +63,22 @@ namespace eutelescope {
 
     virtual void bookHistos();
 
+    //unstaged change
   private:
-    std::string _hitCollection1NameInput;
-    std::string _hitCollection2NameInput;
+    std::string _hitCollectionEUTInput;
+    std::string _hitCollectionMCInput;
     //std::vector holding sensor IDs
     std::vector<int> _sensorIDVec;
     std::map<int, AIDA::IHistogram1D*> _HitDifHisto;
+    std::map<int, AIDA::IHistogram1D*> _HitXDifHisto;
+    std::map<int, AIDA::IHistogram1D*> _HitYDifHisto;
+    std::map<int, AIDA::IHistogram1D*> _HitZDifHisto;
+    std::map<int, AIDA::IHistogram1D*> _HitDifXCluster1Histo;
+    std::map<int, AIDA::IHistogram1D*> _HitDifYCluster1Histo;
+    std::map<int, AIDA::IHistogram1D*> _HitDifXCluster2Histo;
+    std::map<int, AIDA::IHistogram1D*> _HitDifYCluster2Histo;
+    std::map<int, AIDA::IHistogram1D*> _HitDifXCluster3Histo;
+    std::map<int, AIDA::IHistogram1D*> _HitDifYCluster3Histo;
   }; // close class declaration
   //! A global instance of the processor
   EUTelTestProcessor gEUTelTestProcessor;

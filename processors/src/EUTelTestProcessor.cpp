@@ -14,7 +14,7 @@
 #include "EUTELESCOPE.h"
 #include "EUTelExceptions.h"
 #include "EUTelGeometryTelescopeGeoDescription.h"
-#include "CellIDReencoder.h"
+#include "EUTelSparseClusterImpl.h"
 
 // marlin includes ".h"
 #include "marlin/Processor.h"
@@ -34,6 +34,7 @@
 #include <UTIL/CellIDDecoder.h>
 
 using namespace eutelescope;
+using namespace marlin;
 
 EUTelTestProcessor::EUTelTestProcessor():
 Processor("EUTelTestProcessor"),
@@ -115,6 +116,7 @@ void EUTelTestProcessor::processEvent(LCEvent* event)
 			for(int iHit = 0; iHit < inputCollection->getNumberOfElements(); ++iHit) {
 				
 				TrackerHitImpl* inputHit = static_cast<TrackerHitImpl*>(inputCollection->getElementAt(iHit));
+				TrackerHitImpl* inputHit2 = static_cast<TrackerHitImpl*>(inputCollection2->getElementAt(iHit));
 				int sensorID = hitDecoder(inputHit)["sensorID"];
 				auto objectVector1 = inputHit->getRawHits();
                         	auto const & cluster_zs_data1 = static_cast<TrackerDataImpl*>(objectVector1[0]);
@@ -125,16 +127,77 @@ void EUTelTestProcessor::processEvent(LCEvent* event)
 					const double* inputPos2 = map2[cluster_zs_data1]->getPosition();
 					std::array<double, 3> inputArray1 = { inputPos[0], inputPos[1], inputPos[2] };
 					std::array<double, 3> inputArray2 = { inputPos2[0], inputPos2[1], inputPos2[2] };
-				
+
+					int cluX = 0, cluY = 0;
+			                float locX = 0, locY = 0;
+					int clustersize = 0;	
+
+        			        auto rawData1 = static_cast<TrackerDataImpl*>(inputHit->getRawHits()[0]);
+       				        //if( inputHit->getType() == kEUTelSparseClusterImpl ){
+                        			auto const & cluster1 = EUTelSparseClusterImpl<EUTelGenericSparsePixel>(rawData1);
+                        			cluster1.getClusterSize(cluX, cluY);
+                        			cluster1.getCenterOfGravity(locX, locY);
+                        			clustersize = cluster1.size();
+                			//}
 
 					double difX = (inputArray1[0] - inputArray2[0])*1000;
                                         double difY = (inputArray1[1] - inputArray2[1])*1000;
                                         double difZ = (inputArray1[2] - inputArray2[2])*1000;
 					double dif = sqrt(difX * difX+difY * difY+difZ*difZ);
 					
+						if(clustersize == 1){
+							_HitDifXCluster1Histo.at(sensorID)->fill(difX);
+							//_HitDifXCluster1Histo.at(sensorID)->SetFillColor(kRed);
+							//_HitDifXCluster1Histo.at(sensorID)->SetMarkerStyle(21);
+							//_HitDifXCluster1Histo.at(sensorID)->SetMarkerColor(kRed);
+
+							_HitDifYCluster1Histo.at(sensorID)->fill(difY);
+							//_HitDifYCluster1Histo.at(sensorID)->SetFillColor(kRed);
+                                                        //_HitDifYCluster1Histo.at(sensorID)->SetMarkerStyle(21);
+                                                        //_HitDifYCluster1Histo.at(sensorID)->SetMarkerColor(kRed);
+						}
+						if(clustersize == 2){
+							if(cluX == 2){
+								_HitDifXCluster2Histo.at(sensorID)->fill(difX);
+								//_HitDifXCluster2Histo.at(sensorID)->SetFillColor(kBlue);
+								//_HitDifXCluster2Histo.at(sensorID)->SetMarkerStyle(21);
+								//_HitDifXCluster2Histo.at(sensorID)->SetMarkerColor(kBlue);
+							}
+							if(cluY == 2){
+								_HitDifYCluster2Histo.at(sensorID)->fill(difY);
+								//_HitDifYCluster2Histo.at(sensorID)->SetFillColor(kBlue);
+                                                                //_HitDifYCluster2Histo.at(sensorID)->SetMarkerStyle(21);
+                                                                //_HitDifYCluster2Histo.at(sensorID)->SetMarkerColor(kBlue);
+							}
+						}
+						if(clustersize >= 3){
+							if(cluX >= 2 && cluY >= 1){
+								_HitDifXCluster3Histo.at(sensorID)->fill(difX);
+								//_HitDifXCluster3Histo.at(sensorID)->SetFillColor(kGreen);
+                                                                //_HitDifXCluster3Histo.at(sensorID)->SetMarkerStyle(21);
+                                                                //_HitDifXCluster3Histo.at(sensorID)->SetMarkerColor(kGreen);
+							}
+							if(cluY >= 2 && cluX >=1){
+								_HitDifYCluster3Histo.at(sensorID)->fill(difY);
+								//_HitDifYCluster3Histo.at(sensorID)->SetFillColor(kGreen);
+                                                                //_HitDifYCluster3Histo.at(sensorID)->SetMarkerStyle(21);
+                                                                //_HitDifYCluster3Histo.at(sensorID)->SetMarkerColor(kGreen);
+							}
+						}	
+
 					_HitDifHisto.at(sensorID)->fill(dif);
+
 					_HitXDifHisto.at(sensorID)->fill(difX);
-                                        _HitYDifHisto.at(sensorID)->fill(difY);
+					//_HitXDifHisto.at(sensorID)->add(_HitDifXCluster1Histo.at(sensorID));
+					//_HitXDifHisto.at(sensorID)->add(_HitDifXCluster2Histo.at(sensorID));
+					//_HitXDifHisto.at(sensorID)->add(_HitDifXCluster3Histo.at(sensorID));
+
+					_HitYDifHisto.at(sensorID)->fill(difY);
+                                        //_HitYDifHisto.at(sensorID)->add(_HitDifYCluster1Histo.at(sensorID));
+                                        //_HitYDifHisto.at(sensorID)->add(_HitDifYCluster2Histo.at(sensorID));
+                                        //_HitYDifHisto.at(sensorID)->add(_HitDifYCluster3Histo.at(sensorID));
+					
+
                                         _HitZDifHisto.at(sensorID)->fill(difZ);
 				}
 				else{
@@ -144,7 +207,7 @@ void EUTelTestProcessor::processEvent(LCEvent* event)
 		}
 		if(inputCollection->getNumberOfElements() < inputCollection2->getNumberOfElements()){
 			for(int iHit = 0; iHit < inputCollection2->getNumberOfElements(); ++iHit) {
-                                
+                                TrackerHitImpl* inputHit = static_cast<TrackerHitImpl*>(inputCollection->getElementAt(iHit));
                                 TrackerHitImpl* inputHit2 = static_cast<TrackerHitImpl*>(inputCollection2->getElementAt(iHit));
                                 int sensorID = hitDecoder(inputHit2)["sensorID"];
                                 auto objectVector2 = inputHit2->getRawHits();
@@ -155,60 +218,121 @@ void EUTelTestProcessor::processEvent(LCEvent* event)
                                         const double* inputPos = map1[cluster_zs_data2]->getPosition();
                                         const double* inputPos2 = map2[cluster_zs_data2]->getPosition();
                                         std::array<double, 3> inputArray1 = { inputPos[0], inputPos[1], inputPos[2] };
-                                        std::array<double, 3> inputArray2 = { inputPos2[0], inputPos2[1], inputPos2[2] };
+                                        std::array<double, 3> inputArray2 = { inputPos2[0], inputPos2[1], inputPos2[2]};
+
+                                        int cluX = 0, cluY = 0;
+                                        float locX = 0, locY = 0;
+					int clustersize = 0;
+
+                                        auto rawData1 = static_cast<TrackerDataImpl*>(inputHit->getRawHits()[0]);
+                                        //if( inputHit->getType() == kEUTelSparseClusterImpl ){
+                                                auto const & cluster1 = EUTelSparseClusterImpl<EUTelGenericSparsePixel>(rawData1);
+                                                cluster1.getClusterSize(cluX, cluY);
+                                                cluster1.getCenterOfGravity(locX, locY);
+                                                clustersize = cluster1.size();
+                                        //}
 
 
                                         double difX = (inputArray1[0] - inputArray2[0])*1000;
                                         double difY = (inputArray1[1] - inputArray2[1])*1000;
                                         double difZ = (inputArray1[2] - inputArray2[2])*1000;
                                         double dif = sqrt(difX * difX+difY * difY+difZ*difZ);
-                                        
+
+                                                if(clustersize == 1){
+                                                        _HitDifXCluster1Histo.at(sensorID)->fill(difX);
+							//_HitDifXCluster1Histo.at(sensorID)->SetFillColor(kRed);
+							//_HitDifXCluster1Histo.at(sensorID)->SetMarkerStyle(21);
+							//_HitDifXCluster1Histo.at(sensorID)->SetMarkerColor(kRed);
+
+                                                        _HitDifYCluster1Histo.at(sensorID)->fill(difY);
+							//_HitDifYCluster1Histo.at(sensorID)->SetFillColor(kRed);
+                                                        //_HitDifYCluster1Histo.at(sensorID)->SetMarkerStyle(21);
+                                                        //_HitDifYCluster1Histo.at(sensorID)->SetMarkerColor(kRed);
+                                                }
+                                                if(clustersize == 2){
+							if(cluX == 2){
+                                                        	_HitDifXCluster2Histo.at(sensorID)->fill(difX);
+								//_HitDifXCluster2Histo.at(sensorID)->SetFillColor(kBlue);
+								//_HitDifXCluster2Histo.at(sensorID)->SetMarkerStyle(21);
+								//_HitDifXCluster2Histo.at(sensorID)->SetMarkerColor(kBlue);
+							}
+							if(cluY == 2){
+                                                        	_HitDifYCluster2Histo.at(sensorID)->fill(difY);
+								//_HitDifYCluster2Histo.at(sensorID)->SetFillColor(kBlue);
+                                                                //_HitDifYCluster2Histo.at(sensorID)->SetMarkerStyle(21);
+                                                                //_HitDifYCluster2Histo.at(sensorID)->SetMarkerColor(kBlue);
+							}
+                                                }
+                                                if(clustersize >= 3){
+							if(cluX >= 2 && cluY >= 1){
+                                                        	_HitDifXCluster3Histo.at(sensorID)->fill(difX);
+								//_HitDifXCluster3Histo.at(sensorID)->SetFillColor(kGreen);
+								//_HitDifXCluster3Histo.at(sensorID)->SetMarkerStyle(21);
+								//_HitDifXCluster3Histo.at(sensorID)->SetMarkerColor(kGreen);
+							}
+							if(cluY >= 2 && cluX >= 1){
+                                                       		_HitDifYCluster3Histo.at(sensorID)->fill(difY);
+								//_HitDifYCluster3Histo.at(sensorID)->SetFillColor(kGreen);
+                                                                //_HitDifYCluster3Histo.at(sensorID)->SetMarkerStyle(21);
+                                                                //_HitDifYCluster3Histo.at(sensorID)->SetMarkerColor(kGreen);
+							}
+                                                }
+                                                
                                         _HitDifHisto.at(sensorID)->fill(dif);
+
 					_HitXDifHisto.at(sensorID)->fill(difX);
+					//_HitXDifHisto.at(sensorID)->add(_HitDifXCluster1Histo.at(sensorID));
+					//_HitXDifHisto.at(sensorID)->add(_HitDifXCluster2Histo.at(sensorID));
+					//_HitXDifHisto.at(sensorID)->add(_HitDifXCluster3Histo.at(sensorID));
+					
 					_HitYDifHisto.at(sensorID)->fill(difY);
+					//_HitYDifHisto.at(sensorID)->add(_HitDifYCluster1Histo.at(sensorID));
+					//_HitYDifHisto.at(sensorID)->add(_HitDifYCluster2Histo.at(sensorID));
+					//_HitYDifHisto.at(sensorID)->add(_HitDifYCluster3Histo.at(sensorID));
+
 					_HitZDifHisto.at(sensorID)->fill(difZ);
-                                }
-				else{
+                                }       	
+				else{   	
 					streamlog_out(WARNING1) << "missmatch between number of hits in monte carlo and EUTelescope data sample" << std::endl;
-				}
-                        }
-
-		}
-}
-
-void EUTelTestProcessor::end()
-{
+				}       	
+                        }               	
+                                                
+		}                       	
+}                                       	
+                                        	
+void EUTelTestProcessor::end()          	
+{                                       	
 	streamlog_out(MESSAGE4) << "Successfully finished" << std::endl;
-}
-
-void EUTelTestProcessor::bookHistos() {
+}                                       	
+                                                
+void EUTelTestProcessor::bookHistos() { 	
        	streamlog_out(MESSAGE1) << "Booking histograms " << std::endl;
-
+                                                
  	 for (auto sensorID : _sensorIDVec) {
    		 auto basePath = "detector_" + to_string(sensorID);
 		 marlin::AIDAProcessor::tree(this)->mkdir(basePath.c_str());
-  		 basePath.append("/");
-
+  		 basePath.append("/");  	
+                                        	
 		 auto const countHistoName = "absolut hitposition difference" ;
-
-		 auto HitDifHisto =
+                                        	
+		 auto HitDifHisto =     	
        			 marlin::AIDAProcessor::histogramFactory(this)->createHistogram1D(
            		 (basePath + countHistoName).c_str(), 100, 0, 100);
-		 HitDifHisto->setTitle("absolut hitposition difference  ;difference in hit position [#mu];number of events");
-
+		 HitDifHisto->setTitle("absolut hitposition difference  ;difference in hit position [#mum];number of events");
+                                        	
 		 _HitDifHisto[sensorID] = HitDifHisto;
-	}
+	}                               	
 	for (auto sensorID : _sensorIDVec) {
                  auto basePath = "detector_" + to_string(sensorID);
                  marlin::AIDAProcessor::tree(this)->mkdir(basePath.c_str());
-                 basePath.append("/");
-
+                 basePath.append("/");  	
+                                        	
                  auto const countHistoName = "hitposition X-difference";
 
                  auto HitXDifHisto =
                          marlin::AIDAProcessor::histogramFactory(this)->createHistogram1D(
                          (basePath + countHistoName).c_str(), 100, -20, 20);
-		 HitXDifHisto->setTitle("hitposition X-difference  ;difference in hit position [#mu];number of events");
+		 HitXDifHisto->setTitle("hitposition X-difference  ;difference in hit position [#mum];number of events");
 
                  _HitXDifHisto[sensorID] = HitXDifHisto;
         }
@@ -222,7 +346,7 @@ void EUTelTestProcessor::bookHistos() {
                  auto HitYDifHisto =
                          marlin::AIDAProcessor::histogramFactory(this)->createHistogram1D(
                          (basePath + countHistoName).c_str(), 100, -20, 20);
-		 HitYDifHisto->setTitle("hitposition Y-difference  ;difference in hit position [#mu];number of events");
+		 HitYDifHisto->setTitle("hitposition Y-difference  ;difference in hit position [#mum];number of events");
 
                  _HitYDifHisto[sensorID] = HitYDifHisto;
         }
@@ -236,9 +360,99 @@ void EUTelTestProcessor::bookHistos() {
                  auto HitZDifHisto =
                          marlin::AIDAProcessor::histogramFactory(this)->createHistogram1D(
                          (basePath + countHistoName).c_str(), 100, -100, 100);
-		 HitZDifHisto->setTitle("hitposition Z-difference  ;difference in hit position [#mu];number of events");
+		 HitZDifHisto->setTitle("hitposition Z-difference  ;difference in hit position [#mum];number of events");
 
                  _HitZDifHisto[sensorID] = HitZDifHisto;
+        }
+	
+	for (auto sensorID : _sensorIDVec) {
+                 auto basePath = "detector_" + to_string(sensorID) + "/clustersize_1";
+                 marlin::AIDAProcessor::tree(this)->mkdir(basePath.c_str());
+                 basePath.append("/");
+
+                 auto const countHistoName = "clustersize 1 X-difference";
+
+                 auto HitDifXCluster1Histo =
+                         marlin::AIDAProcessor::histogramFactory(this)->createHistogram1D(
+                         (basePath + countHistoName).c_str(), 600, -150, 150);
+                 HitDifXCluster1Histo->setTitle("clustersize 1 X-difference  ;difference in hit position [#mum];number of events");
+
+                 _HitDifXCluster1Histo[sensorID] = HitDifXCluster1Histo;
+        }
+	
+	for (auto sensorID : _sensorIDVec) {
+                 auto basePath = "detector_" + to_string(sensorID) + "/clustersize_1";
+                 marlin::AIDAProcessor::tree(this)->mkdir(basePath.c_str());
+                 basePath.append("/");
+
+                 auto const countHistoName = "clustersize 1 Y-difference";
+
+                 auto HitDifYCluster1Histo =
+                         marlin::AIDAProcessor::histogramFactory(this)->createHistogram1D(
+                         (basePath + countHistoName).c_str(), 300, -100, 100);
+                 HitDifYCluster1Histo->setTitle("clustersize 1 Y-difference  ;difference in hit position [#mum];number of events");
+
+                 _HitDifYCluster1Histo[sensorID] = HitDifYCluster1Histo;
+        }
+
+	for (auto sensorID : _sensorIDVec) {
+                 auto basePath = "detector_" + to_string(sensorID) + "/clustersize_2";
+                 marlin::AIDAProcessor::tree(this)->mkdir(basePath.c_str());
+                 basePath.append("/");
+
+                 auto const countHistoName = "clustersize 2 X-difference";
+
+                 auto HitDifXCluster2Histo =
+                         marlin::AIDAProcessor::histogramFactory(this)->createHistogram1D(
+                         (basePath + countHistoName).c_str(), 600, -150, 150);
+                 HitDifXCluster2Histo->setTitle("clustersize 2 X-difference  ;difference in hit position [#mum];number of events");
+
+                 _HitDifXCluster2Histo[sensorID] = HitDifXCluster2Histo;
+        }
+
+	for (auto sensorID : _sensorIDVec) {
+                 auto basePath = "detector_" + to_string(sensorID) + "/clustersize_2";
+                 marlin::AIDAProcessor::tree(this)->mkdir(basePath.c_str());
+                 basePath.append("/");
+
+                 auto const countHistoName = "clustersize 2 Y-difference";
+
+                 auto HitDifYCluster2Histo =
+                         marlin::AIDAProcessor::histogramFactory(this)->createHistogram1D(
+                         (basePath + countHistoName).c_str(), 300, -100, 100);
+                 HitDifYCluster2Histo->setTitle("clustersize 2 Y-difference  ;difference in hit position [#mum];number of events");
+
+                 _HitDifYCluster2Histo[sensorID] = HitDifYCluster2Histo;
+        }
+
+	for (auto sensorID : _sensorIDVec) {
+                 auto basePath = "detector_" + to_string(sensorID) + "/clustersize_>3";
+                 marlin::AIDAProcessor::tree(this)->mkdir(basePath.c_str());
+                 basePath.append("/");
+
+                 auto const countHistoName = "clustersize >3 X-difference";
+
+                 auto HitDifXCluster3Histo =
+                         marlin::AIDAProcessor::histogramFactory(this)->createHistogram1D(
+                         (basePath + countHistoName).c_str(), 100, -20, 20);
+                 HitDifXCluster3Histo->setTitle("clustersize >3 X-difference  ;difference in hit position [#mum];number of events");
+
+                 _HitDifXCluster3Histo[sensorID] = HitDifXCluster3Histo;
+        }
+
+	for (auto sensorID : _sensorIDVec) {
+                 auto basePath = "detector_" + to_string(sensorID) + "/clustersize_>3";
+                 marlin::AIDAProcessor::tree(this)->mkdir(basePath.c_str());
+                 basePath.append("/");
+
+                 auto const countHistoName = "clustersize >3 Y-difference";
+
+                 auto HitDifYCluster3Histo =
+                         marlin::AIDAProcessor::histogramFactory(this)->createHistogram1D(
+                         (basePath + countHistoName).c_str(), 100, -20, 20);
+                 HitDifYCluster3Histo->setTitle("clustersize >3 Y-difference  ;difference in hit position [#mu];number of events");
+
+                 _HitDifYCluster3Histo[sensorID] = HitDifYCluster3Histo;
         }
 }
 

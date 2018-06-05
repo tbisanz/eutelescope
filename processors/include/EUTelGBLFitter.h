@@ -30,6 +30,7 @@
 #include <IMPL/LCFlagImpl.h>
 #include <Exceptions.h>
 #include <IMPL/TrackImpl.h>
+#include <EVENT/Track.h>
 
 // AIDA includes <.h>
 #if defined(USE_AIDA) || defined(MARLIN_USE_AIDA)
@@ -130,8 +131,15 @@ namespace eutelescope {
     void fillTrackhitHisto(EUTelTripletGBLUtility::hit const & hit, int ipl);
   protected:
     std::string _inputCollectionTelescope;
+
+    std::string _MCTrackTelescope;
   
     std::map<size_t, bool> _excludedSensorMap;
+   
+    //comparison variables
+    double _correcttriplett;
+    double _correctdriplett;
+    int _numberOfTracks;
 
     //Analysis parameters
     bool _isFirstEvent;
