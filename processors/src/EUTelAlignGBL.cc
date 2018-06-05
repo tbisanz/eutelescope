@@ -1,12 +1,3 @@
-// -*- mode: c++; mode: auto-fill; mode: flyspell-prog; -*-
-// Authors:
-// Philipp Roloff, DESY <mailto:philipp.roloff@desy.de>
-// Joerg Behr, Hamburg Uni/DESY <joerg.behr@desy.de>
-// Slava Libov, DESY <mailto:vladyslav.libov@desy.de>
-// Igor Rubinskiy, DESY <mailto:igorrubinsky@gmail.com>
-// Daniel Pitzl, DESY <mailto:daniel.pitzl@desy.de>
-//
-// Version: $Id: EUTelAlignGBL.cc,v 1.48 2009-08-01 10:49:46 bulgheroni Exp $
 /*
  *   This source code is part of the Eutelescope package of Marlin.
  *   You are free to use this source files for your own development as
@@ -15,8 +6,6 @@
  *   header with author names in all development based on this file.
  *
  */
-// built only if GEAR and MARLINUTIL are used
-#if defined(USE_GEAR) && defined(USE_MARLINUTIL)
 
 // eutelescope includes ".h"
 #include "EUTelAlignGBL.h"
@@ -76,6 +65,9 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
+
+// ROOT includes ".h"
+#include <TMath.h>
 
 using namespace std;
 using namespace lcio;
@@ -160,31 +152,31 @@ EUTelAlignGBL::EUTelAlignGBL(): Processor("EUTelAlignGBL") {
   // modify processor description
   _description = "EUTelAlignGBL uses the MILLE program to write data files for MILLEPEDE II.";
 
-  // input collections
-  std::vector<std::string > HitCollectionNameVecExample;
-  HitCollectionNameVecExample.push_back("corrhits");
-
-  registerInputCollections(LCIO::TRACKERHIT,"HitCollectionName","Hit collections name",_hitCollectionName,HitCollectionNameVecExample);
-  registerProcessorParameter("Ebeam","Beam energy [GeV]",_eBeam, static_cast<double>(4.0));
-  registerProcessorParameter("IsFirstAlignStep", "Bool: 1/0 (yes/no)",_IsFirstAlignStep, static_cast<int>(0));
-  registerOptionalParameter("ExcludePlanes","Exclude planes from fit according to their sensor ids.",_excludePlanes_sensorIDs ,std::vector<int>());
-  registerOptionalParameter("FixedPlanes","Fix sensor planes in the fit according to their sensor ids.",_FixedPlanes_sensorIDs ,std::vector<int>());
-  registerOptionalParameter("MaxTrackCandidatesTotal","Maximal number of track candidates (Total).",_maxTrackCandidatesTotal, static_cast <int> (10000000));
-  registerOptionalParameter("MaxTrackCandidates","Maximal number of track candidates.",_maxTrackCandidates, static_cast <int> (2000));
-  registerOptionalParameter("BinaryFilename","Name of the Millepede binary file.",_binaryFilename, string ("mille.bin"));
-  registerOptionalParameter("TelescopeResolution","Resolution of the telescope for Millepede (sigma_x=sigma_y.",_telescopeResolution, static_cast <float> (0.010));
-  registerOptionalParameter("AlignMode","Number of alignment constants used. Available mode are: "
-                              "\nXYZShifts - shifts in X and Y"
-                              "\nXYShiftsRotZ - shifts in X and Y and rotation around the Z axis,"
-                              "\nXYZShiftsRotZ - shifts in X,Y and Z and rotation around the Z axis",
-                              _alignModeString, std::string("XYShiftsRotZ"));
-  registerOptionalParameter("triCut", "Upstream triplet residual cut [um]", _triCut, 0.30);
-  registerOptionalParameter("driCut", "Downstream triplet residual cut [um]", _driCut, 0.40);
-  registerOptionalParameter("sixCut", "Upstream-Downstream Track matching cut [um]", _sixCut, 0.60);
-  registerOptionalParameter("slopeCut", "t(d)riplet slope cut [radian]", _slopeCut, 0.01);
-  registerOptionalParameter("GeneratePedeSteerfile","Generate a steering file for the pede program.",_generatePedeSteerfile, static_cast <int> (0));
-  registerOptionalParameter("PedeSteerfileName","Name of the steering file for the pede program.",_pedeSteerfileName, string("steer_mille.txt"));
-  registerProcessorParameter("kappa","Global factor to Highland formula", _kappa, static_cast <double>(1.0)); // 1.0 means HL as is, 1.2 means 20% additional scattering
+  registerInputCollections(LCIO::TRACKERHIT,"hitCollectionName","Input hit collections name",_hitCollectionName, std::vector<std::string>{"corrhits"});
+  registerProcessorParameter("eBeam","Beam energy [GeV]",_eBeam, 4.0);
+  registerOptionalParameter("excludePlanes","Exclude planes from fit according to their sensor ids",_excludePlanes_sensorIDs ,std::vector<int>());
+  registerOptionalParameter("upstreamTriplet","The three sensors used as the upstream triplet", _upstream_triplet_ids, std::vector<int>{0,1,2});
+  registerOptionalParameter("downstreamTriplet","The three sensors used as the downstream triplet", _downstream_triplet_ids, std::vector<int>{3,4,5});
+  registerOptionalParameter("lastUpstreamSensor","The last plane (z-ordered) which still should be attached to the upstream triplet", _last_upstream_sensor, 2);
+  registerOptionalParameter("resolutionX","x-resolution of sensors (z-ordered) [mm]", _x_resolution_vec ,std::vector<float>());
+  registerOptionalParameter("resolutionY","y-resolution of sensors (z-ordered) [mm]", _y_resolution_vec ,std::vector<float>());
+  registerOptionalParameter("fixedPlanes","Fix sensor planes in the fit according to their sensor ids",_FixedPlanes_sensorIDs ,std::vector<int>());
+  registerOptionalParameter("maxTrackCandidatesTotal","Maximal number of track candidates (Total)",_maxTrackCandidatesTotal, 10000000);
+  registerOptionalParameter("maxTrackCandidates","Maximal number of track candidates",_maxTrackCandidates, 2000);
+  registerOptionalParameter("milleBinaryFilename","Name of the Millepede binary file",_binaryFilename, std::string{"mille.bin"});
+  registerOptionalParameter("alignMode","Number of alignment constants used. Available mode are:"
+                              "\n\t\tXYZShifts - shifts in X and Y"
+                              "\n\t\tXYShiftsRotZ - shifts in X and Y and rotation around the Z axis,"
+                              "\n\t\tXYZShiftsRotZ - shifts in X,Y and Z and rotation around the Z axis",
+                              _alignModeString, std::string{ "XYShiftsRotZ" });
+  registerOptionalParameter("upstreamTripletResidualCut", "Upstream triplet residual cut [mm]", _upTriResCut, 0.30);
+  registerOptionalParameter("downstreamTripletResidualCut", "Downstream triplet residual cut [mm]", _downTriResCut, 0.40);
+  registerOptionalParameter("upstreamTripletSlopeCut", "Upstream triplet slope cut [mrad]", _upSlopeCut, 3.);
+  registerOptionalParameter("downstreamTripletSlopeCut", "Downstream triplet slope cut [mrad]", _downSlopeCut, 5.);
+  registerOptionalParameter("tripletsMatchingCut", "Upstream-downstream triplet matching cut [mm]", _upDownTripletMatchCut, 0.60);
+  registerOptionalParameter("generatePedeSteerfile","Generate a steering file for the pede program",_generatePedeSteerfile, 0);
+  registerOptionalParameter("pedeSteerfileName","Name of the steering file for the pede program",_pedeSteerfileName, std::string{"steer_mille.txt"});
+  registerProcessorParameter("kappa","Global factor to Highland formula, 1.0 means HL as is, 1.2 means 20/% additional scattering", _kappa, 1.0);
 }
 
 //------------------------------------------------------------------------------
@@ -197,6 +189,7 @@ void EUTelAlignGBL::init() {
   _sensorIDVec = geo::gGeometry().sensorIDsVec();
   _nPlanes = _sensorIDVec.size();
 
+  bool isStillUpstream = true;
   for(auto& sensorID: _sensorIDVec) {
     _planePosition.emplace_back( geo::gGeometry().siPlaneZPosition(sensorID) );
     auto z = geo::gGeometry().siPlaneZSize(sensorID);
@@ -205,6 +198,19 @@ void EUTelAlignGBL::init() {
         _planeRadLength.emplace_back(55e-3 / 93.66 + 0.050 / 286.6); // Si + Kapton
     } else {
         _planeRadLength.emplace_back(z/rad);
+    }
+    //Since we go along z-ordering, we can decide if a sensor still is associated to the up-
+    //or downstream triplet
+    _is_sensor_upstream[sensorID] = isStillUpstream;
+    if(sensorID == _last_upstream_sensor) {
+       isStillUpstream = false;
+    }
+
+    auto belongsToUp = (std::find(std::begin(_upstream_triplet_ids), std::end(_upstream_triplet_ids), sensorID) != _upstream_triplet_ids.end());
+    auto belongsToDown = (std::find(std::begin(_downstream_triplet_ids), std::end(_downstream_triplet_ids), sensorID) != _downstream_triplet_ids.end());
+
+    if(!belongsToUp && !belongsToDown){
+      _dut_ids.emplace_back(sensorID);
     }
   }
 
@@ -233,49 +239,11 @@ void EUTelAlignGBL::init() {
                             << "\n\t_planeWscatSi has size: \t" << _planeWscatSi.size() 
                             << "\n\t_planeWscatAir has size: \t" << _planeWscatAir.size() << '\n';
 
-  // The measurement resolution depends on threshold, energy, dz, and number of iterations done ...
-  // We make an accurate, heuristic  guess
-  double distplane = _planePosition[1] - _planePosition[0];
-  double res = 0;
-  if( distplane > 100. ) {
-   res = 100. - _eBeam*8;
-   if (_eBeam > 11) {
-       res = 8;
-   }
-  }
-  else if( distplane < 30. ) {
-   res = 20. - _eBeam*1.5; // if only tracks with prob(chi2,ndf) > 0.001 are passed to Mille
-  }
-  else if( distplane > 30. && distplane < 100. ) {
-   res = 50 - _eBeam*3.8; 
-   if (_eBeam > 10) {
-       res = 6.;
-   }
-  }
-
-  if(!_IsFirstAlignStep){
-   // 2nd iteration 20
-   if( distplane < 30. ) {
-       res = 4.4 - _eBeam*0.1;
-   }
-   // 2nd iteration 150
-   else if( distplane > 100. ) {
-       res = 18 - _eBeam*1.5;
-   }
-  }
-
-  res = res/1000.; // finally convert to [mm]
-     
-  streamlog_out( MESSAGE2 ) << "res x = " << res << endl;
-
-  //For now we have the same x/y resolution and the same for telescope & DUT
-
-  double dutXRes = 75.0/1000.0;
-  double dutYRes = 15.0/1000.0;
   for(size_t ipl = 0; ipl < _nPlanes; ipl++) {
-   if(!_IsFirstAlignStep && ipl == 3) _planeMeasPrec.emplace_back(1.0/dutXRes/dutXRes, 1.0/dutYRes/dutYRes);
-   else if(!_IsFirstAlignStep && ipl == 4) _planeMeasPrec.emplace_back(1.0/dutYRes/dutYRes, 1.0/dutXRes/dutXRes);
-   else _planeMeasPrec.emplace_back(1.0/res/res, 1.0/res/res); // precision = 1/resolution^2
+    auto x_res = _x_resolution_vec.at(ipl);
+    auto y_res = _y_resolution_vec.at(ipl);
+    _planeMeasPrec.emplace_back(1.0/x_res/x_res, 1.0/y_res/y_res);
+    
   }
 
   // the user is giving sensor ids for the planes to be fixed.
@@ -305,7 +273,6 @@ void EUTelAlignGBL::init() {
       indexconverter.emplace_back(-1);
     }
   }
-#endif
 
   // this method is called only once even when the rewind is active
   // usually a good idea to
@@ -326,20 +293,15 @@ void EUTelAlignGBL::init() {
 
   // booking histograms
   bookHistos(_sensorIDVec);
-
+  gblutil.setParent(this);
+  gblutil.bookHistos();
+  
   streamlog_out( MESSAGE2 ) << "Initialising Mille..." << endl;
 
   unsigned int reserveSize = 8000;
   milleAlignGBL = std::make_unique<gbl::MilleBinary>( _binaryFilename, reserveSize );
 
   streamlog_out( MESSAGE2 ) << "The filename for the binary file is: " << _binaryFilename.c_str() << endl;
-
-  // apply correction to cut if is not first alignment step
-  if(!_IsFirstAlignStep){
-    _triCut = _triCut*6./_eBeam;
-    _driCut = _driCut*6./_eBeam;
-    _sixCut = _sixCut*6./_eBeam;
-  }
 
   if(_alignModeString.compare("XYShiftsRotZ") == 0 ) {
     _alignMode = Utility::alignMode::XYShiftsRotZ;
@@ -356,8 +318,6 @@ void EUTelAlignGBL::init() {
 
 //------------------------------------------------------------------------------
 void EUTelAlignGBL::processRunHeader( LCRunHeader* rdr ) {
-  gblutil.setParent(this);
-  gblutil.bookHistos();
   auto header = std::make_unique<EUTelRunHeaderImpl>(rdr);
   header->addProcessor( type() ) ;
   // increment the run counter
@@ -365,7 +325,7 @@ void EUTelAlignGBL::processRunHeader( LCRunHeader* rdr ) {
 }
 
 //------------------------------------------------------------------------------
-Eigen::Matrix<double,5,5> Jac55new( double ds ) {
+inline Eigen::Matrix<double,5,5> Jac55new( double ds ) {
   /* for GBL:
      Jacobian for straight line track
      track = q/p, x', y', x, y
@@ -392,7 +352,7 @@ void EUTelAlignGBL::processEvent( LCEvent * event ) {
       << endl;
   }
 
-  if( _nMilleTracks > (size_t)_maxTrackCandidatesTotal ) {
+  if( _nMilleTracks > static_cast<size_t>(_maxTrackCandidatesTotal) ) {
     throw StopProcessingException(this);
   }
   EUTelEventImpl * evt = static_cast<EUTelEventImpl*> (event) ;
@@ -426,7 +386,7 @@ void EUTelAlignGBL::processEvent( LCEvent * event ) {
       auto hit = static_cast<TrackerHitImpl*>( collection->getElementAt(iHit) );
       auto sensorID = hitCellDecoder(hit)["sensorID"];
       auto hitPosition = hit->getPosition();
-      if(sensorID <= 5) {
+      if(sensorID <= 6) {
         _hitsVec.emplace_back(hitPosition, sensorID);
       } else {
         _DUThitsVec.emplace_back(hitPosition, sensorID);
@@ -438,8 +398,9 @@ void EUTelAlignGBL::processEvent( LCEvent * event ) {
   int nm = 0;
   auto tripletVec = std::vector<EUTelTripletGBLUtility::triplet>();
   auto dripletVec = std::vector<EUTelTripletGBLUtility::triplet>();
-  gblutil.FindTriplets(_hitsVec, 0, 1, 2, _triCut, _slopeCut, tripletVec, false);
-  gblutil.FindTriplets(_hitsVec, 3, 4, 5, _driCut, _slopeCut+0.012, dripletVec, false);
+
+  gblutil.FindTriplets(_hitsVec, _upstream_triplet_ids, _upTriResCut, _upSlopeCut/1000., tripletVec, false);
+  gblutil.FindTriplets(_hitsVec, _downstream_triplet_ids, _downTriResCut, _downSlopeCut/1000., dripletVec, false);
 
   if(_printEventCounter < NO_PRINT_EVENT_COUNTER){
     std::cout << "Triplets:\n";
@@ -457,36 +418,47 @@ void EUTelAlignGBL::processEvent( LCEvent * event ) {
 
   double zMid = 0.5*(_planePosition[_nPlanes-3] + _planePosition[2]);
   auto matchedTripletVec = std::vector<EUTelTripletGBLUtility::track>();
-  gblutil.MatchTriplets(tripletVec, dripletVec, zMid, _sixCut, matchedTripletVec);
+  gblutil.MatchTriplets(tripletVec, dripletVec, zMid, _upDownTripletMatchCut, matchedTripletVec);
 
   if(_printEventCounter < NO_PRINT_EVENT_COUNTER) std::cout << "Matched to:\n"; 
-  for(auto& track: matchedTripletVec) {    
-    //std::cout << "Dist 22:\n";
-    auto& triplet = track.get_upstream();
-    auto has22 = gblutil.AttachDUT(triplet, _DUThitsVec, 22, 3 );    
-    //std::cout << "Dist 21:\n";
-    auto& driplet = track.get_downstream();
-    auto has21 = gblutil.AttachDUT(driplet, _DUThitsVec, 21, 3 );    
-    if(_printEventCounter < NO_PRINT_EVENT_COUNTER){
-       std::cout << "---pair--\n" << triplet << driplet << '\n';
-      std::cout << "Expects hit on 22 at:\n";
-      auto zPos = geo::gGeometry().siPlaneZPosition(22);
-      auto trX = triplet.getx_at(zPos);
-      auto trY = triplet.gety_at(zPos);
-      std::cout << trX << "|" << trY << '\n';
-      std::cout << "Expects hit on 21 at:\n";
-      zPos = geo::gGeometry().siPlaneZPosition(21);
-      trX = driplet.getx_at(zPos);
-      trY = driplet.gety_at(zPos);
-      std::cout << trX << "|" << trY << '\n';        
-      for(auto& hit: _DUThitsVec) {
-        if(hit.plane == 21 || hit.plane == 22) {
-          std::cout << "Hit on " << hit.plane << " at: " << hit.x << "|" << hit.y << '\n';
-        }
-      }
-    }
-  }
 
+  if(!_dut_ids.empty()) {
+          for(auto& track: matchedTripletVec) {    
+            //std::cout << "Dist 22:\n";
+            auto& triplet = track.get_upstream();
+            auto& driplet = track.get_downstream();
+
+            for(auto dutID: _dut_ids) {
+              if(_is_sensor_upstream[dutID]) {
+                gblutil.AttachDUT(triplet, _DUThitsVec, dutID, 3);
+              } else {
+                gblutil.AttachDUT(driplet, _DUThitsVec, dutID, 3);
+              }
+            }
+/*
+            auto has22 = gblutil.AttachDUT(triplet, _DUThitsVec, 22, 3 );    
+            //std::cout << "Dist 21:\n";
+            auto has21 = gblutil.AttachDUT(driplet, _DUThitsVec, 21, 3 );    
+            if(_printEventCounter < NO_PRINT_EVENT_COUNTER){
+               std::cout << "---pair--\n" << triplet << driplet << '\n';
+              std::cout << "Expects hit on 22 at:\n";
+              auto zPos = geo::gGeometry().siPlaneZPosition(22);
+              auto trX = triplet.getx_at(zPos);
+              auto trY = triplet.gety_at(zPos);
+              std::cout << trX << "|" << trY << '\n';
+              std::cout << "Expects hit on 21 at:\n";
+              zPos = geo::gGeometry().siPlaneZPosition(21);
+              trX = driplet.getx_at(zPos);
+              trY = driplet.gety_at(zPos);
+              std::cout << trX << "|" << trY << '\n';        
+              for(auto& hit: _DUThitsVec) {
+                if(hit.plane == 21 || hit.plane == 22) {
+                  std::cout << "Hit on " << hit.plane << " at: " << hit.x << "|" << hit.y << '\n';
+                }
+              }
+            }*/
+          }
+  }
   for(auto& track: matchedTripletVec) {
     // GBL point vector for the trajectory, all in [mm] !!
     // GBL with triplet A as seed
@@ -548,14 +520,14 @@ void EUTelAlignGBL::processEvent( LCEvent * event ) {
       //We have to add all the planes, the up and downstream arm of the telescope will definitely have
       //hits, the DUTs might not though! The first and last three planes are the telescope.
       EUTelTripletGBLUtility::hit const * hit = nullptr;
+      auto sensorID = _sensorIDVec[ipl];
       if(ipl < 3) {
-        hit = &triplet.gethit(ipl);
+        hit = &triplet.gethit(sensorID);
       } else if( ipl < 3+DUTCount) {
-        auto sensorID = _sensorIDVec[ipl];
         if(triplet.has_DUT(sensorID)) hit = &triplet.get_DUT_Hit(sensorID);
         else if(driplet.has_DUT(sensorID)) hit = &driplet.get_DUT_Hit(sensorID);
       } else {
-        hit = &driplet.gethit(ipl-DUTCount);
+        hit = &driplet.gethit(sensorID);
       }
 
       //if there is no hit we take the plane position from the geo description
@@ -1044,8 +1016,6 @@ void EUTelAlignGBL::end() {
 //------------------------------------------------------------------------------
 void EUTelAlignGBL::bookHistos(std::vector<int> const & sensorIDVec) {
 
-#if defined(USE_AIDA) || defined(MARLIN_USE_AIDA)
-
   try {
     streamlog_out( MESSAGE2 ) << "Booking histograms..." << endl;
 
@@ -1306,7 +1276,5 @@ void EUTelAlignGBL::bookHistos(std::vector<int> const & sensorIDVec) {
   catch( lcio::Exception& e ) {
 
   }
-#endif
-
 }
 

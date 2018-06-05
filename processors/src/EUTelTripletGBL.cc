@@ -115,43 +115,43 @@ EUTelTripletGBL::EUTelTripletGBL() : Processor("EUTelTripletGBL"), _siPlanesPara
 
   registerProcessorParameter( "Ebeam",
       "Beam energy [GeV]",
-      _eBeam, static_cast < double >( 0.0));
+      _eBeam, 0.0);
 
   registerOptionalParameter( "triResCut", "Upstream/Downstream triplet residual cut [mm]", _triplet_res_cut, 0.1 );
 
   registerProcessorParameter( "matchingCut",
       "cut for matching in x coordinate in mm",
-      _track_match_cut, static_cast < double >(0.15));
+      _track_match_cut, 0.15);
 
   registerProcessorParameter( "slopeCut",
       "cut for track slopes in x coordinate in rad",
-      _slope_cut, static_cast < double >(0.002));
+      _slope_cut, 0.002);
 
   registerProcessorParameter( "dut_plane",
       "plane to be considered the DUT and excluded from the track fit",
-      _dut_plane, static_cast <int>(3));
+      _dut_plane, 3);
 
   registerProcessorParameter( "eff_radius",
       "radius on DUT plane to accept match with triplet",
-      _eff_radius, static_cast <double>(0.1)); // in mm. 0.1 is for 6 GeV, 20 mm. This is scaled with E and dz
+      _eff_radius, 0.1); // in mm. 0.1 is for 6 GeV, 20 mm. This is scaled with E and dz
 
   registerProcessorParameter( "kappa",
       "global factor to Highland formula",
-      _kappa, static_cast <double>(1.0)); // 1.0 means HL as is, 1.2 means 20% additional scattering
+      _kappa, 1.0); // 1.0 means HL as is, 1.2 means 20% additional scattering
 
   registerProcessorParameter( "probchi2Cut",
       "Cut on Prob(chi2,ndf) rejecting bad tracks with prob < cut",
-      _probchi2_cut, static_cast <double>(.01)); 
+      _probchi2_cut, .01); 
 
   registerOptionalParameter("Resolution",
       "resolution parameter for each Cluster size, same for all planes. first value is average of all CSes. Up to CS6 plus larger than 6, hence in total 8 numbers. Disable with -1, e.g. (3.5e-3, -1, -1, ...., -1)",
-      _resolution,  FloatVec (static_cast <double> (8), 3.5*1e-3));
+      _resolution, FloatVec( 8, 3.5*1e-3));
 
-  registerOptionalParameter("Thickness","thickness parameter for each plane. Note: these numbers are ordered according to the z position of the sensors and NOT according to the sensor id.",_thickness,  FloatVec (static_cast <double> (6), 50*1e-3));
+  registerOptionalParameter("Thickness","thickness parameter for each plane. Note: these numbers are ordered according to the z position of the sensors and NOT according to the sensor id.",_thickness,  FloatVec ( 6, 50*1e-3));
 
   registerProcessorParameter( "ClusterSizeSwitch",
       "boolian to switch b/w cluster charge (0, false) and cluster dimension (1, true) used as cluster size",
-      _CSswitch, static_cast <bool>(true));
+      _CSswitch, true);
 
 }
 
@@ -239,7 +239,7 @@ void EUTelTripletGBL::init() {
 //------------------------------------------------------------------------------
 void EUTelTripletGBL::processRunHeader( LCRunHeader* runHeader) {
 
-  std::auto_ptr<EUTelRunHeaderImpl> eutelHeader( new EUTelRunHeaderImpl( runHeader ) );
+  auto eutelHeader = std::make_unique<EUTelRunHeaderImpl>( runHeader );
   eutelHeader->addProcessor( type() );
 
   // Decode and print out Run Header information - just a check
@@ -380,7 +380,7 @@ void EUTelTripletGBL::processEvent( LCEvent * event ) {
     int clusterdim[2] = {0,0};
 
     TrackerDataImpl* clusterVector = static_cast<TrackerDataImpl*>( meshit->getRawHits()[0]);
-    EUTelSimpleVirtualCluster * cluster=0;
+    EUTelSimpleVirtualCluster * cluster = nullptr;
 
     float locx = -1;
     float locy = -1;
@@ -464,7 +464,7 @@ void EUTelTripletGBL::processEvent( LCEvent * event ) {
 
   // Generate new triplet set for the Telescope Downstream Arm:
   std::vector<EUTelTripletGBLUtility::triplet> downstream_triplets;
-  gblutil.FindTriplets(hits, 3, 4, 5, _triplet_res_cut, _slope_cut, downstream_triplets);
+  gblutil.FindTriplets(hits, std::array<size_t,3>{3, 4, 5}, _triplet_res_cut, _slope_cut, downstream_triplets);
   streamlog_out(DEBUG4) << "Found " << downstream_triplets.size() << " driplets." << endl;
 
   // Iterate over all found downstream triplets to fill histograms and match them to the REF and DUT:
@@ -504,7 +504,7 @@ void EUTelTripletGBL::processEvent( LCEvent * event ) {
 
   // Generate new triplet set for the Telescope Upstream Arm:
   std::vector<EUTelTripletGBLUtility::triplet> upstream_triplets;
-  gblutil.FindTriplets(hits, 0, 1, 2, _triplet_res_cut, _slope_cut, upstream_triplets);
+  gblutil.FindTriplets(hits, std::array<size_t,3>{0, 1, 2}, _triplet_res_cut, _slope_cut, upstream_triplets);
   streamlog_out(DEBUG4) << "Found " << upstream_triplets.size() << " triplets." << endl;
 
   // Iterate over all found upstream triplets to fill histograms and match them to the REF and DUT:
@@ -577,7 +577,7 @@ void EUTelTripletGBL::processEvent( LCEvent * event ) {
   //gblutil.FindTriplets(hits, 0, 1, 2, _triplet_res_cut, _slope_cut, eff_triplets_UP);
 
   std::vector<EUTelTripletGBLUtility::triplet> eff_triplets_DOWN;
-  gblutil.FindTriplets(hits, 2, 4, 5, _triplet_res_cut, _slope_cut, eff_triplets_DOWN);
+  gblutil.FindTriplets(hits, std::array<size_t,3>{2, 4, 5}, _triplet_res_cut, _slope_cut, eff_triplets_DOWN);
 
   std::vector<AIDA::IProfile1D*> profiles;
   profiles.push_back(effix3);
@@ -596,7 +596,7 @@ void EUTelTripletGBL::processEvent( LCEvent * event ) {
 
 
   // Generate new triplet set with planes 0, 1, 3; 3,4,5:
-  gblutil.FindTriplets(hits, 0, 1, 3, _triplet_res_cut, _slope_cut, eff_triplets_UP);
+  gblutil.FindTriplets(hits, std::array<size_t,3>{0, 1, 3}, _triplet_res_cut, _slope_cut, eff_triplets_UP);
   // use existing one for down stream
   eff_triplets_DOWN = downstream_triplets;
 
@@ -618,7 +618,7 @@ void EUTelTripletGBL::processEvent( LCEvent * event ) {
 
 
   // Generate new triplet set with planes 0, 2, 3; 3,4,5:
-  gblutil.FindTriplets(hits, 0, 2, 3, _triplet_res_cut, _slope_cut, eff_triplets_UP);
+  gblutil.FindTriplets(hits, std::array<size_t,3>{0, 2, 3}, _triplet_res_cut, _slope_cut, eff_triplets_UP);
   // use existing one for down stream
   eff_triplets_DOWN = downstream_triplets;
 
@@ -639,7 +639,7 @@ void EUTelTripletGBL::processEvent( LCEvent * event ) {
 
 
   // Generate new triplet set with planes 1, 2, 3; 3,4,5:
-  gblutil.FindTriplets(hits, 1, 2, 3, _triplet_res_cut, _slope_cut, eff_triplets_UP);
+  gblutil.FindTriplets(hits, std::array<size_t,3>{1, 2, 3}, _triplet_res_cut, _slope_cut, eff_triplets_UP);
   eff_triplets_DOWN = downstream_triplets;
 
   profiles.clear();
@@ -659,7 +659,7 @@ void EUTelTripletGBL::processEvent( LCEvent * event ) {
 
   // Generate new triplet set with planes 0, 1, 2; 2,4,5:
   eff_triplets_UP = upstream_triplets;
-  gblutil.FindTriplets(hits, 2, 3, 5, _triplet_res_cut, _slope_cut, eff_triplets_DOWN);
+  gblutil.FindTriplets(hits, std::array<size_t,3>{2, 3, 5}, _triplet_res_cut, _slope_cut, eff_triplets_DOWN);
 
   profiles.clear();
   profiles.push_back(effix4);
@@ -678,7 +678,7 @@ void EUTelTripletGBL::processEvent( LCEvent * event ) {
 
   // Generate new triplet set with planes 0, 1, 2; 2,3,4:
   eff_triplets_UP = upstream_triplets;
-  gblutil.FindTriplets(hits, 2, 3, 4, _triplet_res_cut, _slope_cut, eff_triplets_DOWN);
+  gblutil.FindTriplets(hits, std::array<size_t,3>{2, 3, 4}, _triplet_res_cut, _slope_cut, eff_triplets_DOWN);
 
   profiles.clear();
   profiles.push_back(effix5);
@@ -780,8 +780,8 @@ void EUTelTripletGBL::processEvent( LCEvent * event ) {
     double ry[6];
     double trackhitx[6];
     double trackhity[6];
-    double trackhitxloc[6];
-    double trackhityloc[6];
+    //double trackhitxloc[6];
+    //double trackhityloc[6];
     //double zprev = _planePosition[0];
     double step = 0.;
     s = 0.;
@@ -820,8 +820,8 @@ void EUTelTripletGBL::processEvent( LCEvent * event ) {
 
       trackhitx[ipl] = trackhit.x;
       trackhity[ipl] = trackhit.y;
-      trackhitxloc[ipl] = trackhit.locx;
-      trackhityloc[ipl] = trackhit.locy;
+      //trackhitxloc[ipl] = trackhit.locx;
+      //trackhityloc[ipl] = trackhit.locy;
 
       rx[ipl] = trackhit.x - xs;
       ry[ipl] = trackhit.y - ys;
@@ -1169,8 +1169,8 @@ void EUTelTripletGBL::processEvent( LCEvent * event ) {
 
       ipos = ilab[1];
       traj.getResults( ipos, aCorrection, aCovariance );
-      traj.getMeasResults(static_cast<unsigned int>(ipos), ndata, aResiduals, aMeasErrors, aResErrors, aDownWeights );
-      traj.getScatResults(static_cast<unsigned int>(ipos), ndata, aKinks, aKinkErrors, kResErrors, kDownWeights );
+      traj.getMeasResults(ipos, ndata, aResiduals, aMeasErrors, aResErrors, aDownWeights );
+      traj.getScatResults(ipos, ndata, aKinks, aKinkErrors, kResErrors, kDownWeights );
       aResiduals[0] = rx[1] - aCorrection[3];
       aResiduals[1] = ry[1] - aCorrection[4];
       gblax1Histo->fill( aCorrection[1]*1E3 ); // angle x [mrad]
@@ -1192,8 +1192,8 @@ void EUTelTripletGBL::processEvent( LCEvent * event ) {
 
       ipos = ilab[2];
       traj.getResults( ipos, aCorrection, aCovariance );
-      traj.getMeasResults(static_cast<unsigned int>(ipos), ndata, aResiduals, aMeasErrors, aResErrors, aDownWeights );
-      traj.getScatResults(static_cast<unsigned int>(ipos), ndata, aKinks, aKinkErrors, kResErrors, kDownWeights );
+      traj.getMeasResults(ipos, ndata, aResiduals, aMeasErrors, aResErrors, aDownWeights );
+      traj.getScatResults(ipos, ndata, aKinks, aKinkErrors, kResErrors, kDownWeights );
       aResiduals[0] = rx[2] - aCorrection[3];
       aResiduals[1] = ry[2] - aCorrection[4];
       gblax2Histo->fill( aCorrection[1]*1E3 ); // angle x [mrad]
@@ -1214,8 +1214,8 @@ void EUTelTripletGBL::processEvent( LCEvent * event ) {
 
       ipos = ilab[3];
       traj.getResults( ipos, aCorrection, aCovariance );
-      traj.getMeasResults(static_cast<unsigned int>(ipos), ndata, aResiduals, aMeasErrors, aResErrors, aDownWeights );
-      traj.getScatResults(static_cast<unsigned int>(ipos), ndata, aKinks, aKinkErrors, kResErrors, kDownWeights );
+      traj.getMeasResults(ipos, ndata, aResiduals, aMeasErrors, aResErrors, aDownWeights );
+      traj.getScatResults(ipos, ndata, aKinks, aKinkErrors, kResErrors, kDownWeights );
       aResiduals[0] = rx[3] - aCorrection[3];
       aResiduals[1] = ry[3] - aCorrection[4];
       gblax3Histo->fill( aCorrection[1]*1E3 ); // angle x [mrad]
@@ -1365,8 +1365,8 @@ void EUTelTripletGBL::processEvent( LCEvent * event ) {
 
       ipos = ilab[4];
       traj.getResults( ipos, aCorrection, aCovariance );
-      traj.getMeasResults(static_cast<unsigned int>(ipos), ndata, aResiduals, aMeasErrors, aResErrors, aDownWeights );
-      traj.getScatResults(static_cast<unsigned int>(ipos), ndata, aKinks, aKinkErrors, kResErrors, kDownWeights );
+      traj.getMeasResults(ipos, ndata, aResiduals, aMeasErrors, aResErrors, aDownWeights );
+      traj.getScatResults(ipos, ndata, aKinks, aKinkErrors, kResErrors, kDownWeights );
       aResiduals[0] = rx[4] - aCorrection[3];
       aResiduals[1] = ry[4] - aCorrection[4];
       gblax4Histo->fill( aCorrection[1]*1E3 ); // angle x [mrad]
@@ -1387,8 +1387,8 @@ void EUTelTripletGBL::processEvent( LCEvent * event ) {
 
       ipos = ilab[5];
       traj.getResults( ipos, aCorrection, aCovariance );
-      traj.getMeasResults(static_cast<unsigned int>(ipos), ndata, aResiduals, aMeasErrors, aResErrors, aDownWeights );
-      traj.getScatResults(static_cast<unsigned int>(ipos), ndata, aKinks, aKinkErrors, kResErrors, kDownWeights );
+      traj.getMeasResults(ipos, ndata, aResiduals, aMeasErrors, aResErrors, aDownWeights );
+      traj.getScatResults(ipos, ndata, aKinks, aKinkErrors, kResErrors, kDownWeights );
       aResiduals[0] = rx[5] - aCorrection[3];
       aResiduals[1] = ry[5] - aCorrection[4];
       gblax5Histo->fill( aCorrection[1]*1E3 ); // angle x [mrad]

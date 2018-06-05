@@ -71,8 +71,8 @@ EUTelProcessorGeometricClustering::EUTelProcessorGeometricClustering()
       _totClusterMap(), _noOfDetector(0), _ExcludedPlanes(),
       _clusterSignalHistos(), _clusterSizeXHistos(), _clusterSizeYHistos(),
       _seedSignalHistos(), _hitMapHistos(), _eventMultiplicityHistos(),
-      _isGeometryReady(false), _sensorIDVec(), _zsInputDataCollectionVec(NULL),
-      _pulseCollectionVec(NULL) {
+      _isGeometryReady(false), _sensorIDVec(), _zsInputDataCollectionVec(nullptr),
+      _pulseCollectionVec(nullptr) {
 
   // modify processor description
   _description = "EUTelProcessorGeometricClustering is looking for clusters "
@@ -90,7 +90,7 @@ EUTelProcessorGeometricClustering::EUTelProcessorGeometricClustering()
   // now the optional parameters
   registerProcessorParameter(
       "TCut", "Time cut in time units of your sensor", _cutT,
-      static_cast<float>(std::numeric_limits<float>::max()));
+      std::numeric_limits<float>::max());
 
   registerProcessorParameter(
       "HistoInfoFileName", "This is the name of the histogram information file",
@@ -98,7 +98,7 @@ EUTelProcessorGeometricClustering::EUTelProcessorGeometricClustering()
 
   registerProcessorParameter("HistogramFilling",
                              "Switch on or off the histogram filling",
-                             _fillHistos, static_cast<bool>(true));
+                             _fillHistos, true);
 
   registerOptionalParameter(
       "ExcludedPlanes",
@@ -134,7 +134,7 @@ void EUTelProcessorGeometricClustering::processRunHeader(LCRunHeader *rdr) {
 }
 
 void EUTelProcessorGeometricClustering::initializeGeometry(
-    LCEvent *event) throw(marlin::SkipEventException) {
+    LCEvent *event) {
   // set the total number of detector to zero. This number can be different from
   // the one written in the gear description because
   // the input collection can contain only a fraction of all the sensors.
@@ -150,21 +150,16 @@ void EUTelProcessorGeometricClustering::initializeGeometry(
     CellIDDecoder<TrackerDataImpl> cellDecoder(_zsInputDataCollectionVec);
 
     for (size_t i = 0; i < _zsInputDataCollectionVec->size(); ++i) {
-      TrackerDataImpl *data = dynamic_cast<TrackerDataImpl *>(
-          _zsInputDataCollectionVec->getElementAt(i));
+      auto data = dynamic_cast<TrackerDataImpl*>(_zsInputDataCollectionVec->getElementAt(i));
       _sensorIDVec.push_back(cellDecoder(data)["sensorID"]);
       _totClusterMap.insert(std::make_pair(cellDecoder(data)["sensorID"], 0));
     }
-  } catch (lcio::DataNotAvailableException) {
+  } catch (lcio::DataNotAvailableException& ) {
     streamlog_out(DEBUG5) << "Could not find the input collection: "
                           << _zsDataCollectionName.c_str() << " !" << std::endl;
     return;
   }
   _isGeometryReady = true;
-}
-
-void EUTelProcessorGeometricClustering::modifyEvent(LCEvent * /* event */) {
-  return;
 }
 
 void EUTelProcessorGeometricClustering::readCollections(LCEvent *event) {
@@ -175,33 +170,30 @@ void EUTelProcessorGeometricClustering::readCollections(LCEvent *event) {
                           << _zsDataCollectionName.c_str() << " found "
                           << std::endl;
   } catch (lcio::DataNotAvailableException &e) {
-    streamlog_out(DEBUG4) << "_zsInputDataCollectionVec: "
+    streamlog_out(ERROR4) << "_zsInputDataCollectionVec: "
                           << _zsDataCollectionName.c_str()
                           << " not found in event " << event->getEventNumber()
+                          << ". This shouldn't happen! Check your input data!"
                           << std::endl;
+    throw SkipEventException(this);
   }
 }
 
 void EUTelProcessorGeometricClustering::processEvent(LCEvent *event) {
-  // increment event counter
+
   ++_iEvt;
 
-  // first of all we need to be sure that the geometry is properly initialized!
   if (!_isGeometryReady) {
     initializeGeometry(event);
   }
 
-  // read zsInputData collection
   readCollections(event);
 
-#if defined(USE_AIDA) || defined(MARLIN_USE_AIDA)
-  // book the histograms now
   if (_fillHistos && isFirstEvent()) {
     bookHistos();
   }
-#endif
 
-  EUTelEventImpl *evt = static_cast<EUTelEventImpl *>(event);
+  auto evt = static_cast<EUTelEventImpl*>(event);
   if (evt->getEventType() == kEORE) {
     streamlog_out(DEBUG4) << "EORE found: nothing else to do." << std::endl;
     return;
@@ -228,14 +220,13 @@ void EUTelProcessorGeometricClustering::processEvent(LCEvent *event) {
   }
 
   if(isFirstEvent()) {
-  auto& pulseCollectionParameters = pulseCollection->parameters();
-  IntVec sensorIDVec;
-  pulseCollectionParameters.getIntVals("sensorIDs", sensorIDVec ); 
-  sensorIDVec.insert( sensorIDVec.end(), _sensorIDVec.begin(), _sensorIDVec.end());
-  pulseCollectionParameters.setValues("sensorIDs", sensorIDVec );
+    auto& pulseCollectionParameters = pulseCollection->parameters();
+    IntVec sensorIDVec;
+    pulseCollectionParameters.getIntVals("sensorIDs", sensorIDVec ); 
+    sensorIDVec.insert( sensorIDVec.end(), _sensorIDVec.begin(), _sensorIDVec.end());
+    pulseCollectionParameters.setValues("sensorIDs", sensorIDVec );
   }  
 
-  // HERE WE ACTUALLY CALL THE CLUSTERING ROUTINE:
   geometricClustering(evt, pulseCollection);
 
   // if the pulseCollection is not empty add it to the event
@@ -244,12 +235,10 @@ void EUTelProcessorGeometricClustering::processEvent(LCEvent *event) {
     evt->addCollection(pulseCollection, _pulseCollectionName);
   }
 
-#if defined(USE_AIDA) || defined(MARLIN_USE_AIDA)
   if ((pulseCollection->size() != _initialPulseCollectionSize) &&
       (_fillHistos)) {
     fillHistos(event);
   }
-#endif
 
   if (!pulseCollectionExists &&
       (pulseCollection->size() == _initialPulseCollectionSize) && _initialPulseCollectionSize != 0) {
@@ -340,17 +329,15 @@ void EUTelProcessorGeometricClustering::geometricClustering(
       geo::gGeometry()._geoManager->cd((planePath + pixelPath).c_str());
 
       // get the imbedding box
-      TGeoShape *currentShape =
-          geo::gGeometry()._geoManager->GetCurrentVolume()->GetShape();
-      TGeoBBox *bbox = dynamic_cast<TGeoBBox *>(currentShape);
+      auto currentShape = geo::gGeometry()._geoManager->GetCurrentVolume()->GetShape();
+      auto bbox = dynamic_cast<TGeoBBox*>(currentShape);
       // store the dimensions of this box in the GeometricPixel
       hitPixel.setBoundaryX(bbox->GetDX());
       hitPixel.setBoundaryY(bbox->GetDY());
 
       // Get how deep the node description goes (this is how often we have to
       // transform to get coordinates in the local plane coordinate system)
-      std::vector<std::string> split =
-          Utility::stringSplit(planePath + pixelPath, "/", false);
+      auto split = Utility::stringSplit(planePath + pixelPath, "/", false);
 
       // Three recursions for the telescope/plane
       int recursionDepth = split.size() - 3;
@@ -511,11 +498,6 @@ void EUTelProcessorGeometricClustering::geometricClustering(
   }
 }
 
-void EUTelProcessorGeometricClustering::check(LCEvent * /* evt */) {
-  // nothing to check here - could be used to fill check plots in reconstruction
-  // processor
-}
-
 void EUTelProcessorGeometricClustering::end() {
 
   streamlog_out(MESSAGE4) << "Successfully finished" << std::endl;
@@ -529,7 +511,6 @@ void EUTelProcessorGeometricClustering::end() {
   }
 }
 
-#if defined(USE_AIDA) || defined(MARLIN_USE_AIDA)
 void EUTelProcessorGeometricClustering::fillHistos(LCEvent *evt) {
   EUTelEventImpl *eutelEvent = static_cast<EUTelEventImpl *>(evt);
   EventType type = eutelEvent->getEventType();
@@ -623,9 +604,7 @@ void EUTelProcessorGeometricClustering::fillHistos(LCEvent *evt) {
     return;
   }
 }
-#endif
 
-#ifdef MARLIN_USE_AIDA
 void EUTelProcessorGeometricClustering::bookHistos() {
 
   // histograms are grouped in loops and detectors
@@ -670,7 +649,7 @@ void EUTelProcessorGeometricClustering::bookHistos() {
     // minY, maxX and maxY.
     int minX, minY, maxX, maxY;
     minX = minY = maxX = maxY = 0;
-    float sizeX, sizeY, sizeZ;
+    double sizeX, sizeY, sizeZ;
     sizeX = sizeY = sizeZ = 0;
 
     geoDescr->getPixelIndexRange(minX, maxX, minY, maxY);
@@ -838,4 +817,3 @@ void EUTelProcessorGeometricClustering::bookHistos() {
   }
   streamlog_out(DEBUG5) << "end of Booking histograms " << std::endl;
 }
-#endif

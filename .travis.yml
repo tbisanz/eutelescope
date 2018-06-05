@@ -10,6 +10,10 @@ env:
  - DOCKER_IMG=merualhemio/eutel-ubuntu17
  - DOCKER_IMG=merualhemio/eutel-cerncentos7
  - DOCKER_IMG=merualhemio/eutel-archlinux
+ - DOCKER_IMG=merualhemio/eutel-fedora28
+ - DOCKER_IMG=merualhemio/eutel-ubuntu18
+ - DOCKER_IMG=merualhemio/eutel-opensuse-tumbleweed
+ - DOCKER_IMG=merualhemio/eutel-debian9
  
 script:
  - docker pull $DOCKER_IMG

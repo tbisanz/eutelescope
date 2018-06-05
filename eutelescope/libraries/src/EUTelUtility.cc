@@ -28,7 +28,7 @@ namespace eutelescope {
 
     // Cantor pairing function
     int cantorEncode(int X, int Y) {
-      return static_cast<int>((X + Y) * (X + Y + 1) / 2 + Y);
+      return (X + Y) * (X + Y + 1) / 2 + Y;
     }
 
     /** Returns the rotation matrix for given angles
@@ -51,11 +51,11 @@ namespace eutelescope {
       // sinA << ", " << sinB << ", " << sinG <<  std::endl;
 
       Eigen::Matrix3d rotMat;
-      rotMat << (double)(cosB * cosG + sinA * sinB * sinG),
-          (double)(sinA * sinB * cosG - cosB * sinG), (double)(cosA * sinB),
-          (double)(cosA * sinG), (double)(cosA * cosG), (double)(-sinA),
-          (double)(sinA * cosB * sinG - sinB * cosG),
-          (double)(sinA * cosB * cosG + sinB * sinG), (double)(cosA * cosB);
+      rotMat << static_cast<double>(cosB * cosG + sinA * sinB * sinG),
+          static_cast<double>(sinA * sinB * cosG - cosB * sinG), static_cast<double>(cosA * sinB),
+          static_cast<double>(cosA * sinG), static_cast<double>(cosA * cosG), static_cast<double>(-sinA),
+          static_cast<double>(sinA * cosB * sinG - sinB * cosG),
+          static_cast<double>(sinA * cosB * cosG + sinB * sinG), static_cast<double>(cosA * cosB);
       // std::cout << rotMat.format(IO) << std::endl;
       return rotMat;
     }
@@ -88,7 +88,7 @@ namespace eutelescope {
       }
 
       Eigen::Vector3d vec;
-      vec << (double)aX, (double)aY, (double)aZ;
+      vec << static_cast<double>(aX), static_cast<double>(aY), static_cast<double>(aZ);
       return vec;
     }
 
@@ -126,8 +126,8 @@ namespace eutelescope {
         // Get the TrackerData for the sensor ID
         TrackerDataImpl *noisyPixelData = dynamic_cast<TrackerDataImpl *>(
             noisyPixelCollectionVec->getElementAt(i));
-        int sensorID = cellDecoder(noisyPixelData)["sensorID"];
-        int pixelType = cellDecoder(noisyPixelData)["sparsePixelType"];
+        int sensorID = static_cast<int>(cellDecoder(noisyPixelData)["sensorID"]);
+        int pixelType = static_cast<int>(cellDecoder(noisyPixelData)["sparsePixelType"]);
 
         // And get the corresponding noise vector for that plane
         std::vector<int> *noiseSensorVector = &(noisyPixelMap[sensorID]);
@@ -284,13 +284,13 @@ namespace eutelescope {
         try {
           LCObjectVec clusterVector = hit->getRawHits();
 
-          EUTelVirtualCluster *cluster = NULL;
+          EUTelVirtualCluster *cluster = nullptr;
 
           if (hit->getType() == kEUTelSparseClusterImpl) {
 
             TrackerDataImpl *clusterFrame =
                 dynamic_cast<TrackerDataImpl *>(clusterVector[0]);
-            if (clusterFrame == 0) {
+            if (clusterFrame == nullptr) {
               // found invalid result from cast
               throw UnknownDataTypeException(
                   "Invalid hit found in method hitContainsHotPixels()");
@@ -347,7 +347,7 @@ namespace eutelescope {
 
           //                if ( cluster != 0 ) delete cluster;
 
-        } catch (lcio::Exception e) {
+        } catch (lcio::Exception & e) {
           // catch specific exceptions
           streamlog_out(ERROR)
               << "Exception occured in hitContainsHotPixels(): " << e.what()
@@ -402,7 +402,7 @@ namespace eutelescope {
      * @return plane id
      */
     int getSensorIDfromHit(EVENT::TrackerHit *hit) {
-      if (hit == NULL) {
+      if (hit == nullptr) {
         streamlog_out(ERROR) << "getSensorIDfromHit:: An invalid hit pointer "
                                 "supplied! will exit now\n"
                              << std::endl;
@@ -410,19 +410,14 @@ namespace eutelescope {
       }
 
       try {
-
-        UTIL::CellIDDecoder<TrackerHitImpl> hitDecoder(
-            EUTELESCOPE::HITENCODING);
-
-        int sensorID =
-            hitDecoder(static_cast<IMPL::TrackerHitImpl *>(hit))["sensorID"];
+        UTIL::CellIDDecoder<TrackerHitImpl> hitDecoder(EUTELESCOPE::HITENCODING);
+        int sensorID = static_cast<int>(hitDecoder(static_cast<IMPL::TrackerHitImpl*>(hit))["sensorID"]);
         return sensorID;
 
       } catch (...) {
         streamlog_out(ERROR) << "getSensorIDfromHit() produced an exception!"
                              << std::endl;
       }
-
       return -1;
     }
 
@@ -432,7 +427,7 @@ namespace eutelescope {
 
       std::map<std::string, bool> hotPixelMap;
 
-      LCCollectionVec *hotPixelCollectionVec = 0;
+      LCCollectionVec *hotPixelCollectionVec = nullptr;
       try {
         hotPixelCollectionVec = static_cast<LCCollectionVec *>(
             event->getCollection(hotPixelCollectionName));
@@ -672,7 +667,7 @@ namespace eutelescope {
 
     float DoubleToFloat(double a) { return static_cast<float>(a); }
 
-    float *toFloatN(double *a, int N) {
+    inline float* toFloatN(double *a, int N) {
       float *vec = new float[N];
       for (int i = 0; i < N; i++) {
         vec[i] = DoubleToFloat(a[i]);

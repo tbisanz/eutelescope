@@ -159,12 +159,12 @@ INCLUDE_DIRECTORIES( ./eutelescope/interfaces/cluster/include )
 INCLUDE_DIRECTORIES( ./processors/include )
 INCLUDE_DIRECTORIES( ./datasources/include )
 INCLUDE_DIRECTORIES( ./processors/include/alibava )
+INCLUDE_DIRECTORIES( ./processors/include/cms )
 INCLUDE_DIRECTORIES( ./geometries/include/ )
 INCLUDE_DIRECTORIES( ./external/millepede2/$ENV{MILLEPEDEII_VERSION} )
  
 # definitions to pass to the compiler
-ADD_DEFINITIONS( "-Wno-effc++ -Wall -std=c++11 -pedantic -Wextra" )
-ADD_DEFINITIONS( "-Wno-long-long" )
+ADD_DEFINITIONS( "-Wno-effc++ -Wall -std=c++11 -Wdisabled-optimization -Wold-style-cast -pedantic -Wextra -Wcast-align -Wcast-qual -Wuseless-cast -Wzero-as-null-pointer-constant -Wundef -Wctor-dtor-privacy -Wredundant-decls -Wdeprecated -Wformat-security -Wmissing-declarations -Wmissing-include-dirs -Wmissing-include-dirs -Wswitch-default -Wno-sign-promo -Werror" )
 
 # debuging warnings and switches - only active if  CMAKE_BUILD_TYPE  is set to debug
 SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -fno-inline -fdiagnostics-show-option -Weffc++ -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wmissing-include-dirs -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wsign-promo -Wstrict-null-sentinel -Wswitch-default -Wundef"  CACHE STRING "Debug options." FORCE )
@@ -195,6 +195,7 @@ IF(BUILD_PROCESSORS)
   SET( processors EutelProcessors )
   AUX_SOURCE_DIRECTORY( ${CMAKE_CURRENT_SOURCE_DIR}/processors/src processor_sources )
   AUX_SOURCE_DIRECTORY( ${CMAKE_CURRENT_SOURCE_DIR}/processors/src/alibava processor_sources )
+  AUX_SOURCE_DIRECTORY( ${CMAKE_CURRENT_SOURCE_DIR}/processors/src/cms processor_sources )
   ADD_SHARED_LIBRARY( ${processors} ${processor_sources} )
   INSTALL_SHARED_LIBRARY( ${processors} DESTINATION lib )
 ENDIF(BUILD_PROCESSORS)
@@ -264,6 +265,13 @@ install (CODE
 
 
 )
+
+# Enable testing
+ENABLE_TESTING()
+
+# Include example configurations:
+ADD_SUBDIRECTORY(ctest)
+
 
 option(utest "Build all tests." OFF)
 if(utest)

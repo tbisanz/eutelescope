@@ -266,13 +266,13 @@ EUTelClusterFilter::EUTelClusterFilter() : Processor("EUTelClusterFilter") {
       "SameNumberOfHits",
       "Setting this to true will select only events having the same number \n"
       "of hits for each plane.",
-      _sameNumberOfHitSwitch, static_cast<bool>(false));
+      _sameNumberOfHitSwitch, false);
 
   registerOptionalParameter(
       "SkipEmptyEvent",
       "If true, a SkipEventException is thrown if after selection\n"
       "there are no cluster left.",
-      _skipEmptyEvent, static_cast<bool>(false));
+      _skipEmptyEvent, false);
 
   // set the global noise switch to on
   _noiseRelatedCuts = true;
@@ -506,7 +506,7 @@ void EUTelClusterFilter::initializeGeometry(LCEvent *event) {
       int sensorID = noiseDecoder(noise)["sensorID"];
       _ancillaryIndexMap.insert(make_pair(sensorID, iDetector));
     }
-  } catch (lcio::DataNotAvailableException) {
+  } catch (lcio::DataNotAvailableException& ) {
     // just catch it!
     _noOfDetectors = 0;
   }

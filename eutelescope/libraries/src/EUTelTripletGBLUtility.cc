@@ -262,62 +262,6 @@ bool EUTelTripletGBLUtility::IsTripletIsolated(EUTelTripletGBLUtility::triplet c
   return IsolatedTrip;
 }
 
-void EUTelTripletGBLUtility::FindTriplets(std::vector<EUTelTripletGBLUtility::hit> const & hits, unsigned int plane0, unsigned int plane1, unsigned int plane2, double trip_res_cut, double slope_cut, std::vector<EUTelTripletGBLUtility::triplet> &triplets, bool onlyBestTriplet) {
-
-  // get all hit is plane = plane0
-  for( auto& ihit: hits ){
-    if( ihit.plane != plane0 ) continue; // First plane
-
-    // get all hit is plane = plane2
-    for( auto& jhit: hits ){
-      if( jhit.plane != plane2 ) continue; // Last plane
-
-      double sum_res_old = -1.;
-      // get all hit is plane = plane1
-      for( auto& khit: hits ){
-	if( khit.plane != plane1 ) continue; // Middle plane
-
-	// Create new preliminary triplet from the three hits:
-	EUTelTripletGBLUtility::triplet new_triplet(ihit,khit,jhit);
-
-	// Setting cuts on the triplet track angle:
-	if( fabs(new_triplet.getdx()) > slope_cut * new_triplet.getdz()) continue;
-	if( fabs(new_triplet.getdy()) > slope_cut * new_triplet.getdz()) continue;
-
-	// Setting cuts on the triplet residual on the middle plane
-	if( fabs(new_triplet.getdx(plane1)) > trip_res_cut) continue;
-	if( fabs(new_triplet.getdy(plane1)) > trip_res_cut) continue;
-
-    if(onlyBestTriplet) {    
-		// For low threshold (high noise) and/or high occupancy, use only the triplet with the smallest sum of residuals on plane1
-		double sum_res = sqrt(new_triplet.getdx(plane1)*new_triplet.getdx(plane1) + new_triplet.getdy(plane1)*new_triplet.getdy(plane1));
-		if(sum_res < sum_res_old){
-	
-		  // Remove the last one since it fits worse, not if its the first
-		  triplets.pop_back();
-		  // The triplet is accepted, push it back:
-		  triplets.push_back(new_triplet);
-		  streamlog_out(DEBUG2) << new_triplet;
-		  sum_res_old = sum_res;
-		}
-
-		// update sum_res_old on first iteration
-		if(sum_res_old < 0.) {
-		  // The triplet is accepted, push it back:
-		  triplets.push_back(new_triplet);
-		  streamlog_out(DEBUG2) << new_triplet;
-		  sum_res_old = sum_res;
-		}
-	} else {	
-		triplets.push_back(new_triplet);
-	}
-      }//loop over hits
-    }//loop over hits
-  }// loop over hits
-
-  //return triplets;
-}
-
 bool EUTelTripletGBLUtility::AttachDUT(EUTelTripletGBLUtility::triplet & triplet, std::vector<EUTelTripletGBLUtility::hit> const & hits, unsigned int dutID,  double dist_cut){
 
 	auto zPos = geo::gGeometry().siPlaneZPosition(dutID);
@@ -338,7 +282,7 @@ bool EUTelTripletGBLUtility::AttachDUT(EUTelTripletGBLUtility::triplet & triplet
 			auto dist = (trX-hitX)*(trX-hitX)+(trY-hitY)*(trY-hitY);
 //			std::cout << "Hit x/y: " << hitX << "|" << hitY << " dist: " << dist << '\n'; 
 			if(dist <= cut_squared && dist < minDist ){
-				minHitIx = ix;
+				minHitIx = static_cast<int>(ix);
 				//std::cout << "Dist: " << dist << std::endl;
 			}
 		}
@@ -346,11 +290,13 @@ bool EUTelTripletGBLUtility::AttachDUT(EUTelTripletGBLUtility::triplet & triplet
 	}
 
 	if(minHitIx != -1) {
-		auto hitX = hits[minHitIx].x;
-       	auto hitY = hits[minHitIx].y;
+		/*
+    auto hitX = hits[minHitIx].x;
+    auto hitY = hits[minHitIx].y;
 		auto dist = (trX-hitX)*(trX-hitX)+(trY-hitY)*(trY-hitY);
+		std::cout << "Added hit with: " << dist << " on plane: " << hits[minHitIx].plane << '\n';
+    */
 		triplet.push_back_DUT(hits[minHitIx].plane, hits[minHitIx]);
-		//std::cout << "Added hit with: " << dist << " on plane: " << hits[minHitIx].plane << '\n';
 		return true;
 	}
 return false;

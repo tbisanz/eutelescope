@@ -105,16 +105,16 @@ EUTelPreAlign::EUTelPreAlign() : Processor("EUTelPreAlign") {
   registerOptionalParameter("MinNumberOfCorrelatedHits",
                             "If there are more then this number of correlated "
                             "hits (planes->track candidate) (default=5)",
-                            _minNumberOfCorrelatedHits, static_cast<int>(5));
+                            _minNumberOfCorrelatedHits, 5);
 
   registerOptionalParameter("HistogramFilling",
                             "Switch on or off the histogram filling",
-                            _fillHistos, bool(true));
+                            _fillHistos, true);
 
   registerOptionalParameter(
       "DumpGEAR",
       "Dump alignment into GEAR file instead of prealignment database",
-      _dumpGEAR, bool(false));
+      _dumpGEAR, false);
 
   registerOptionalParameter("NewGEARSuffix",
                             "Suffix for the new GEAR file, set to empty string "
@@ -147,7 +147,7 @@ void EUTelPreAlign::init() {
   _sensorIDtoZOrderMap.clear();
   for (size_t index = 0; index < _sensorIDVec.size(); index++) {
     _sensorIDtoZOrderMap.insert(
-        std::make_pair(_sensorIDVec.at(index), (int)index));
+        std::make_pair(_sensorIDVec.at(index), static_cast<int>(index)));
   }
 
   for (std::vector<int>::iterator it = _sensorIDVec.begin();
@@ -518,10 +518,16 @@ void EUTelPreAlign::end() {
     constantsCollection->push_back(constant);
 
     // Also update the EUTelGeometry descr.
-    double updatedXOff = geo::gGeometry().siPlaneXPosition(sensorID) +
-                         _preAligners.at(ii).getPeakX();
-    double updatedYOff = geo::gGeometry().siPlaneYPosition(sensorID) +
-                         _preAligners.at(ii).getPeakY();
+     double updatedXOff;
+     double updatedYOff;
+     if(it == _ExcludedPlanes.end()){///Only want to update if needed. Otherwise we get a pointless warning
+       updatedXOff = geo::gGeometry().siPlaneXPosition(sensorID) + _preAligners.at(ii).getPeakX();
+       updatedYOff = geo::gGeometry().siPlaneYPosition(sensorID) + _preAligners.at(ii).getPeakY();
+     }else{
+        updatedXOff=0;
+        updatedYOff=0;
+     }
+
     double oldZPos = geo::gGeometry().siPlaneZPosition(sensorID);
 
     geo::gGeometry().alignGlobalPos(sensorID, updatedXOff, updatedYOff,

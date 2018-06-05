@@ -69,8 +69,8 @@ EUTelProcessorSparseClustering::EUTelProcessorSparseClustering()
       _totClusterMap(), _noOfDetector(0), _ExcludedPlanes(),
       _clusterSignalHistos(), _clusterSizeXHistos(), _clusterSizeYHistos(),
       _seedSignalHistos(), _hitMapHistos(), _eventMultiplicityHistos(),
-      _isGeometryReady(false), _sensorIDVec(), _zsInputDataCollectionVec(NULL),
-      _pulseCollectionVec(NULL), _sparseMinDistanceSquared(2) {
+      _isGeometryReady(false), _sensorIDVec(), _zsInputDataCollectionVec(nullptr),
+      _pulseCollectionVec(nullptr), _sparseMinDistanceSquared(2) {
 
   // modify processor description
   _description = "EUTelProcessorSparseClustering is looking for clusters into "
@@ -88,7 +88,7 @@ EUTelProcessorSparseClustering::EUTelProcessorSparseClustering()
   // now the optional parameters
   registerProcessorParameter(
       "TCut", "Time cut in time units of your sensor", _cutT,
-      static_cast<float>(std::numeric_limits<float>::max()));
+      std::numeric_limits<float>::max());
 
   registerProcessorParameter(
       "HistoInfoFileName", "This is the name of the histogram information file",
@@ -96,7 +96,7 @@ EUTelProcessorSparseClustering::EUTelProcessorSparseClustering()
 
   registerProcessorParameter("HistogramFilling",
                              "Switch on or off the histogram filling",
-                             _fillHistos, static_cast<bool>(true));
+                             _fillHistos, true);
 
   registerOptionalParameter(
       "ExcludedPlanes",
@@ -105,8 +105,8 @@ EUTelProcessorSparseClustering::EUTelProcessorSparseClustering()
 
   registerProcessorParameter(
       "SparseMinDistanceSquared",
-      "Minimum distance squared between sparsified pixel ( touching == 2) ",
-      _sparseMinDistanceSquared, static_cast<int>(2));
+      "Minimum distance squared between sparsified pixel ( touching == 2) [integer]",
+      _sparseMinDistanceSquared, 2);
 
   _isFirstEvent = true;
 }
@@ -130,20 +130,16 @@ void EUTelProcessorSparseClustering::init() {
 }
 
 void EUTelProcessorSparseClustering::processRunHeader(LCRunHeader *rdr) {
-
-  std::unique_ptr<EUTelRunHeaderImpl> runHeader =
-      std::make_unique<EUTelRunHeaderImpl>(rdr);
+  auto runHeader = std::make_unique<EUTelRunHeaderImpl>(rdr);
   runHeader->addProcessor(type());
   ++_iRun;
 }
 
-void EUTelProcessorSparseClustering::initializeGeometry(LCEvent *event) throw(
-    marlin::SkipEventException) {
+void EUTelProcessorSparseClustering::initializeGeometry(LCEvent *event){
 
   // set the total number of detector to zero. This number can be different from
   // the one written in the gear description because
   // the input collection can contain only a fraction of all the sensors.
-
   _noOfDetector = 0;
   _sensorIDVec.clear();
 
@@ -156,23 +152,18 @@ void EUTelProcessorSparseClustering::initializeGeometry(LCEvent *event) throw(
     CellIDDecoder<TrackerDataImpl> cellDecoder(_zsInputDataCollectionVec);
 
     for (size_t i = 0; i < _zsInputDataCollectionVec->size(); ++i) {
-      TrackerDataImpl *data = dynamic_cast<TrackerDataImpl *>(
-          _zsInputDataCollectionVec->getElementAt(i));
+      auto data = dynamic_cast<TrackerDataImpl*>(_zsInputDataCollectionVec->getElementAt(i));
       _sensorIDVec.push_back(cellDecoder(data)["sensorID"]);
       _totClusterMap.insert(std::make_pair(cellDecoder(data)["sensorID"], 0));
     }
   }
 
-  catch (lcio::DataNotAvailableException) {
+  catch (lcio::DataNotAvailableException&) {
     streamlog_out(DEBUG5) << "Could not find the input collection: "
                           << _zsDataCollectionName.c_str() << " !" << std::endl;
     return;
   }
     _isGeometryReady = true;
-}
-
-void EUTelProcessorSparseClustering::modifyEvent(LCEvent * /* event */) {
-  return;
 }
 
 void EUTelProcessorSparseClustering::readCollections(LCEvent *event) {
@@ -182,43 +173,30 @@ void EUTelProcessorSparseClustering::readCollections(LCEvent *event) {
     streamlog_out(DEBUG4) << "_zsInputDataCollectionVec: "
                           << _zsDataCollectionName.c_str() << " found "
                           << std::endl;
-  } catch (lcio::DataNotAvailableException) // do nothing
-  {
-    streamlog_out(DEBUG4) << "_zsInputDataCollectionVec: "
-                          << _zsDataCollectionName.c_str() << " not found "
-                          << std::endl;
-  }
-
-  try {
-    event->getCollection(_zsDataCollectionName);
   } catch (lcio::DataNotAvailableException &e) {
-    streamlog_out(MESSAGE2)
-        << "The current event doesn't contain nZS data collections: skip # "
-        << event->getEventNumber() << std::endl;
+    streamlog_out(ERROR4) << "_zsInputDataCollectionVec: "
+                          << _zsDataCollectionName.c_str()
+                          << " not found in event " << event->getEventNumber()
+                          << ". This shouldn't happen! Check your input data!"
+                          << std::endl;
     throw SkipEventException(this);
   }
 }
 
 void EUTelProcessorSparseClustering::processEvent(LCEvent *event) {
-  // increment event counter
+
   ++_iEvt;
 
-  // first of all we need to be sure that the geometry is properly initialized!
   if (!_isGeometryReady) {
     initializeGeometry(event);
   }
-
-  // read zsInputData collection
   readCollections(event);
 
-#if defined(USE_AIDA) || defined(MARLIN_USE_AIDA)
-  // book the histograms now
   if (_fillHistos && isFirstEvent()) {
     bookHistos();
   }
-#endif
 
-  EUTelEventImpl *evt = static_cast<EUTelEventImpl *>(event);
+  auto evt = static_cast<EUTelEventImpl*>(event);
   if (evt->getEventType() == kEORE) {
     streamlog_out(DEBUG4) << "EORE found: nothing else to do." << std::endl;
     return;
@@ -231,7 +209,7 @@ void EUTelProcessorSparseClustering::processEvent(LCEvent *event) {
 
   // prepare a pulse collection to add all clusters found this can be either a
   // new collection or already existing in the event
-  LCCollectionVec *pulseCollection;
+  LCCollectionVec* pulseCollection = nullptr;
   bool pulseCollectionExists = false;
   _initialPulseCollectionSize = 0;
   try {
@@ -243,14 +221,13 @@ void EUTelProcessorSparseClustering::processEvent(LCEvent *event) {
     pulseCollection = new LCCollectionVec(LCIO::TRACKERPULSE);
   }
   if(isFirstEvent()) {
-  auto& pulseCollectionParameters = pulseCollection->parameters();
-  IntVec sensorIDVec;
-  pulseCollectionParameters.getIntVals("sensorIDs", sensorIDVec ); 
-  sensorIDVec.insert( sensorIDVec.end(), _sensorIDVec.begin(), _sensorIDVec.end());
-  pulseCollectionParameters.setValues("sensorIDs", sensorIDVec );
+    auto& pulseCollectionParameters = pulseCollection->parameters();
+    IntVec sensorIDVec;
+    pulseCollectionParameters.getIntVals("sensorIDs", sensorIDVec ); 
+    sensorIDVec.insert( sensorIDVec.end(), _sensorIDVec.begin(), _sensorIDVec.end());
+    pulseCollectionParameters.setValues("sensorIDs", sensorIDVec );
   }  
 
-  // HERE WE ACTUALLY CALL THE CLUSTERING ROUTINE:
   sparseClustering(evt, pulseCollection);
 
   // if the pulseCollection is not empty add it to the event
@@ -259,12 +236,10 @@ void EUTelProcessorSparseClustering::processEvent(LCEvent *event) {
     evt->addCollection(pulseCollection, _pulseCollectionName);
   }
 
-#if defined(USE_AIDA) || defined(MARLIN_USE_AIDA)
   if ((pulseCollection->size() != _initialPulseCollectionSize) &&
       (_fillHistos)) {
     fillHistos(event);
   }
-#endif
 
   if (!pulseCollectionExists &&
 	(pulseCollection->size() == _initialPulseCollectionSize) && _initialPulseCollectionSize != 0) { 
@@ -280,7 +255,7 @@ void EUTelProcessorSparseClustering::sparseClustering(
   CellIDDecoder<TrackerDataImpl> cellDecoder(_zsInputDataCollectionVec);
 
   bool isDummyAlreadyExisting = false;
-  LCCollectionVec *sparseClusterCollectionVec = NULL;
+  LCCollectionVec *sparseClusterCollectionVec = nullptr;
 
   try {
     sparseClusterCollectionVec =
@@ -300,7 +275,7 @@ void EUTelProcessorSparseClustering::sparseClustering(
 
   // in the zsInputDataCollectionVec we should have one TrackerData for each
   // detector working in ZS mode. We need to loop over all of them
-  for (unsigned int idetector = 0;
+  for (size_t idetector = 0;
        idetector < _zsInputDataCollectionVec->size(); idetector++) {
     // get the TrackerData and guess which kind of sparsified data it contains.
     TrackerDataImpl *zsData = dynamic_cast<TrackerDataImpl *>(
@@ -320,10 +295,6 @@ void EUTelProcessorSparseClustering::sparseClustering(
       continue;
     }
 
-    // now prepare the EUTelescope interface to sparsified data.
-    // auto sparseData =
-    // std::make_unique<EUTelTrackerDataInterfacerImpl<EUTelGenericSparsePixel>>(zsData);
-
     auto sparseData = Utility::getSparseData(zsData, type);
     auto hitPixelVec = sparseData->getPixels();
     std::vector<std::reference_wrapper<EUTelBaseSparsePixel const>> newlyAdded;
@@ -334,9 +305,7 @@ void EUTelProcessorSparseClustering::sparseClustering(
       std::unique_ptr<TrackerDataImpl> zsCluster =
           std::make_unique<TrackerDataImpl>();
       // prepare a reimplementation of sparsified cluster
-      auto sparseCluster = Utility::getClusterData(
-          zsCluster.get(),
-          type); // std::make_unique<EUTelSparseClusterImpl<EUTelGenericSparsePixel>>(zsCluster.get());
+      auto sparseCluster = Utility::getClusterData(zsCluster.get(), type);
 
       // First we need to take any pixel, so let's take the first one
       // Add it to the cluster as well as the newly added pixels
@@ -430,11 +399,6 @@ void EUTelProcessorSparseClustering::sparseClustering(
   }
 }
 
-void EUTelProcessorSparseClustering::check(LCEvent * /* evt */) {
-  // nothing to check here - could be used to fill check plots in reconstruction
-  // processor
-}
-
 void EUTelProcessorSparseClustering::end() {
 
   streamlog_out(MESSAGE4) << "Successfully finished" << std::endl;
@@ -448,7 +412,6 @@ void EUTelProcessorSparseClustering::end() {
   }
 }
 
-#if defined(USE_AIDA) || defined(MARLIN_USE_AIDA)
 void EUTelProcessorSparseClustering::fillHistos(LCEvent *evt) {
   EUTelEventImpl *eutelEvent = static_cast<EUTelEventImpl *>(evt);
   EventType type = eutelEvent->getEventType();
@@ -541,9 +504,7 @@ void EUTelProcessorSparseClustering::fillHistos(LCEvent *evt) {
     return;
   }
 }
-#endif
 
-#ifdef MARLIN_USE_AIDA
 void EUTelProcessorSparseClustering::bookHistos() {
 
   // histograms are grouped in loops and detectors
@@ -588,7 +549,7 @@ void EUTelProcessorSparseClustering::bookHistos() {
     // minY, maxX and maxY.
     int minX, minY, maxX, maxY;
     minX = minY = maxX = maxY = 0;
-    float sizeX, sizeY, sizeZ;
+    double sizeX, sizeY, sizeZ;
     sizeX = sizeY = sizeZ = 0;
 
     geoDescr->getPixelIndexRange(minX, maxX, minY, maxY);
@@ -738,4 +699,3 @@ void EUTelProcessorSparseClustering::bookHistos() {
   }
   streamlog_out(DEBUG5) << "end of Booking histograms " << std::endl;
 }
-#endif

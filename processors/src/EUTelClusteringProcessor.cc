@@ -87,10 +87,10 @@ EUTelClusteringProcessor::EUTelClusteringProcessor()
       _clusterSignal_NHistos(), _clusterSNR_NHistos(),
       _clusterSignal_NxNHistos(), _clusterSNR_NxNHistos(),
       _isGeometryReady(false), _ancillaryIndexMap(), _orderedSensorIDVec(),
-      _sensorIDVec(), zsInputDataCollectionVec(NULL),
-      nzsInputDataCollectionVec(NULL), pulseCollectionVec(NULL),
-      noiseCollectionVec(NULL), statusCollectionVec(NULL),
-      hotPixelCollectionVec(NULL), hasNZSData(false), hasZSData(false),
+      _sensorIDVec(), zsInputDataCollectionVec(nullptr),
+      nzsInputDataCollectionVec(nullptr), pulseCollectionVec(nullptr),
+      noiseCollectionVec(nullptr), statusCollectionVec(nullptr),
+      hotPixelCollectionVec(nullptr), hasNZSData(false), hasZSData(false),
       _hitIndexMapVec() {
 
   // modify processor description
@@ -157,20 +157,20 @@ EUTelClusteringProcessor::EUTelClusteringProcessor()
   registerProcessorParameter(
       "FFClusterSizeX",
       "Maximum allowed cluster size along x (only odd numbers)",
-      _ffXClusterSize, static_cast<int>(5));
+      _ffXClusterSize, 5);
 
   registerProcessorParameter(
       "FFClusterSizeY",
       "Maximum allowed cluster size along y (only odd numbers)",
-      _ffYClusterSize, static_cast<int>(5));
+      _ffYClusterSize, 5);
 
   registerProcessorParameter("FFSeedCut",
                              "Threshold in SNR for seed pixel identification",
-                             _ffSeedCut, static_cast<float>(4.5));
+                             _ffSeedCut, 4.5f);
 
   registerProcessorParameter("FFClusterCut",
                              "Threshold in SNR for cluster identification",
-                             _ffClusterCut, static_cast<float>(3.0));
+                             _ffClusterCut, 3.0f);
 
   registerProcessorParameter(
       "HistoInfoFileName", "This is the name of the histogram information file",
@@ -178,21 +178,21 @@ EUTelClusteringProcessor::EUTelClusteringProcessor()
 
   registerProcessorParameter(
       "SparseSeedCut", "Threshold in SNR for seed pixel contained in ZS data",
-      _sparseSeedCut, static_cast<float>(4.5));
+      _sparseSeedCut, 4.5f);
 
   registerProcessorParameter(
       "SparseClusterCut", "Threshold in SNR for clusters contained in ZS data",
-      _sparseClusterCut, static_cast<float>(3.0));
+      _sparseClusterCut, 3.0f);
 
   registerProcessorParameter(
       "SparseMinDistanceSquared",
       "Minimum distance squared between sparsified pixel ( touching == 2) ",
-      _sparseMinDistanceSquared, static_cast<int>(2));
+      _sparseMinDistanceSquared, 2);
 
   registerProcessorParameter(
       "SparseMinDistance",
       "Minimum distance between sparsified pixel ( touching == sqrt(2)) ",
-      _sparseMinDistance, static_cast<float>(0.0));
+      _sparseMinDistance, 0.0f);
 
   //  registerOptionalParameter("HotPixelDBFile","This is the name of the LCIO
   //  file name with the output hotpixel db (add .slcio)",
@@ -229,7 +229,7 @@ EUTelClusteringProcessor::EUTelClusteringProcessor()
 
   registerProcessorParameter("HistogramFilling",
                              "Switch on or off the histogram filling",
-                             _fillHistos, static_cast<bool>(true));
+                             _fillHistos, true);
 
   registerOptionalParameter(
       "ExcludedPlanes",
@@ -293,8 +293,7 @@ void EUTelClusteringProcessor::processRunHeader(LCRunHeader *rdr) {
   ++_iRun;
 }
 
-void EUTelClusteringProcessor::initializeGeometry(LCEvent *event) throw(
-    marlin::SkipEventException) {
+void EUTelClusteringProcessor::initializeGeometry(LCEvent *event) {
   // set the total number of detector to zero. This number can be
   // different from the one written in the gear description because
   // the input collection can contain only a fraction of all the
@@ -319,7 +318,7 @@ void EUTelClusteringProcessor::initializeGeometry(LCEvent *event) throw(
       _sensorIDVec.push_back(cellDecoder(data)["sensorID"]);
     }
 
-  } catch (lcio::DataNotAvailableException) {
+  } catch (lcio::DataNotAvailableException&) {
     // do nothing
     streamlog_out(DEBUG5) << "_nzsDataCollectionName "
                           << _nzsDataCollectionName.c_str() << " not found "
@@ -339,7 +338,7 @@ void EUTelClusteringProcessor::initializeGeometry(LCEvent *event) throw(
       _totClusterMap.insert(make_pair(cellDecoder(data)["sensorID"], 0));
     }
 
-  } catch (lcio::DataNotAvailableException) {
+  } catch (lcio::DataNotAvailableException&) {
     // do nothing again
     streamlog_out(DEBUG5) << "_zsDataCollectionName "
                           << _zsDataCollectionName.c_str() << " not found "
@@ -367,7 +366,7 @@ void EUTelClusteringProcessor::initializeGeometry(LCEvent *event) throw(
           make_pair(noiseDecoder(noise)["sensorID"], iDetector));
       _orderedSensorIDVec.push_back(noiseDecoder(noise)["sensorID"]);
     }
-  } catch (lcio::DataNotAvailableException) {
+  } catch (lcio::DataNotAvailableException&) {
     streamlog_out(WARNING2)
         << "Unable to initialize the geometry. Trying with the following event"
         << endl;
@@ -428,7 +427,7 @@ void EUTelClusteringProcessor::initializeHotPixelMapVec() {
     }
 
     // the noise map. we only need this map for decoding issues.
-    TrackerDataImpl *noise = 0;
+    TrackerDataImpl *noise = nullptr;
 
     // the noise map. we only need this map for decoding issues.
     noise = dynamic_cast<TrackerDataImpl *>(
@@ -553,7 +552,7 @@ void EUTelClusteringProcessor::readCollections(LCEvent *event) {
     streamlog_out(DEBUG4) << "nzsInputDataCollectionVec: "
                           << _nzsDataCollectionName.c_str() << " found "
                           << endl;
-  } catch (lcio::DataNotAvailableException) {
+  } catch (lcio::DataNotAvailableException&) {
     // do nothing
     streamlog_out(DEBUG4) << "nzsInputDataCollectionVec: "
                           << _nzsDataCollectionName.c_str() << " not found "
@@ -565,7 +564,7 @@ void EUTelClusteringProcessor::readCollections(LCEvent *event) {
         event->getCollection(_zsDataCollectionName));
     streamlog_out(DEBUG4) << "zsInputDataCollectionVec: "
                           << _zsDataCollectionName.c_str() << " found " << endl;
-  } catch (lcio::DataNotAvailableException) {
+  } catch (lcio::DataNotAvailableException&) {
     // do nothing again
     streamlog_out(DEBUG4) << "zsInputDataCollectionVec: "
                           << _zsDataCollectionName.c_str() << " not found "
@@ -574,7 +573,7 @@ void EUTelClusteringProcessor::readCollections(LCEvent *event) {
 
   //
   //
-  statusCollectionVec = 0;
+  statusCollectionVec = nullptr;
   try {
     statusCollectionVec = dynamic_cast<LCCollectionVec *>(
         event->getCollection(_statusCollectionName));
@@ -584,7 +583,7 @@ void EUTelClusteringProcessor::readCollections(LCEvent *event) {
     streamlog_out(DEBUG4) << "No status collection found in the event" << endl;
   }
 
-  noiseCollectionVec = 0;
+  noiseCollectionVec = nullptr;
   try {
     noiseCollectionVec = dynamic_cast<LCCollectionVec *>(
         event->getCollection(_noiseCollectionName));
@@ -598,8 +597,8 @@ void EUTelClusteringProcessor::readCollections(LCEvent *event) {
   // the hotpixel db file should be read only once, and
   // only after the statusCollection has been created (opened)
   //
-  if (isFirstEvent() && statusCollectionVec != 0) {
-    hotPixelCollectionVec = 0;
+  if (isFirstEvent() && statusCollectionVec != nullptr) {
+    hotPixelCollectionVec = nullptr;
     try {
       hotPixelCollectionVec = static_cast<LCCollectionVec *>(
           event->getCollection(_hotPixelCollectionName));
@@ -773,7 +772,7 @@ void EUTelClusteringProcessor::digitalFixedFrameClustering(
   // clustering. BTW we should consider changing that "meaningful"
   // name! This contains cluster and not yet pulses
   bool isDummyAlreadyExisting = false;
-  LCCollectionVec *sparseClusterCollectionVec = NULL;
+  LCCollectionVec *sparseClusterCollectionVec = nullptr;
   try {
     sparseClusterCollectionVec =
         dynamic_cast<LCCollectionVec *>(evt->getCollection("original_zsdata"));
@@ -825,7 +824,7 @@ void EUTelClusteringProcessor::digitalFixedFrameClustering(
     // get the noise and the status matrix with the right detectorID
     //    TrackerRawDataImpl * status = 0;
     // the noise map. we only need this map for decoding issues.
-    TrackerDataImpl *noise = 0;
+    TrackerDataImpl *noise = nullptr;
 
     // get the noise and the status matrix with the right detectorID
     //    status =
@@ -914,8 +913,8 @@ void EUTelClusteringProcessor::digitalFixedFrameClustering(
     // RIA:
     // this is neibhours counting only!
     //
-    const int stepx = static_cast<int>(_ffXClusterSize / 2);
-    const int stepy = static_cast<int>(_ffYClusterSize / 2);
+    const int stepx = _ffXClusterSize / 2;
+    const int stepy = _ffYClusterSize / 2;
 
     ///    const int stepx = 1; wrong or OK ?? could skipp this counting for
     ///    reeeally sparse data
@@ -1119,9 +1118,9 @@ void EUTelClusteringProcessor::digitalFixedFrameClustering(
                 // center of this matrix.
 
                 pixelmatrix.set(pix[j].x + xoffset - seedX +
-                                    static_cast<int>(_ffXClusterSize / 2),
+                                    _ffXClusterSize / 2,
                                 pix[j].y + yoffset - seedY +
-                                    static_cast<int>(_ffYClusterSize / 2),
+                                    _ffYClusterSize / 2,
                                 true);
               }
 
@@ -1265,7 +1264,7 @@ void EUTelClusteringProcessor::zsFixedFrameClustering(
   // clustering. BTW we should consider changing that "meaningful"
   // name! This contains cluster and not yet pulses
   bool isDummyAlreadyExisting = false;
-  LCCollectionVec *sparseClusterCollectionVec = NULL;
+  LCCollectionVec *sparseClusterCollectionVec = nullptr;
   try {
     sparseClusterCollectionVec =
         dynamic_cast<LCCollectionVec *>(evt->getCollection("original_zsdata"));
@@ -1566,7 +1565,7 @@ void EUTelClusteringProcessor::zsBrickedClustering(
   // clustering. BTW we should consider changing that "meaningful"
   // name! This contains cluster and not yet pulses
   bool isDummyAlreadyExisting = false;
-  LCCollectionVec *sparseClusterCollectionVec = NULL;
+  LCCollectionVec *sparseClusterCollectionVec = nullptr;
   try {
     sparseClusterCollectionVec =
         dynamic_cast<LCCollectionVec *>(evt->getCollection("original_zsdata"));
@@ -1985,7 +1984,7 @@ void EUTelClusteringProcessor::sparseClustering(
   CellIDDecoder<TrackerDataImpl> cellDecoder(zsInputDataCollectionVec);
 
   bool isDummyAlreadyExisting = false;
-  LCCollectionVec *sparseClusterCollectionVec = NULL;
+  LCCollectionVec *sparseClusterCollectionVec = nullptr;
 
   try {
     sparseClusterCollectionVec =
@@ -2240,7 +2239,7 @@ void EUTelClusteringProcessor::fixedFrameClustering(
   streamlog_out(DEBUG0) << "Event " << _iEvt << endl;
 
   bool isDummyAlreadyExisting = false;
-  LCCollectionVec *dummyCollection = NULL;
+  LCCollectionVec *dummyCollection = nullptr;
   try {
     dummyCollection = dynamic_cast<LCCollectionVec *>(
         evt->getCollection(_dummyCollectionName));
@@ -2512,7 +2511,7 @@ void EUTelClusteringProcessor::nzsBrickedClustering(
   streamlog_out(DEBUG0) << "nzsBrickedClustering: Event " << _iEvt << endl;
 
   bool isDummyAlreadyExisting = false;
-  LCCollectionVec *dummyCollection = NULL;
+  LCCollectionVec *dummyCollection = nullptr;
   try {
     dummyCollection = dynamic_cast<LCCollectionVec *>(
         evt->getCollection(_dummyCollectionName));
